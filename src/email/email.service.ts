@@ -1,0 +1,183 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { gmail_v1, google } from 'googleapis';
+import { EmailMessage, User } from '../entities';
+import { CreateEmailMessageDto } from '../dto/email.dto';
+
+@Injectable()
+export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
+
+  constructor(
+    @InjectRepository(EmailMessage)
+    private emailRepository: Repository<EmailMessage>,
+  ) {}
+
+  async fetchGmailMessages(
+    user: User,
+    maxResults = 50,
+  ): Promise<EmailMessage[]> {
+    if (!user.gmailRefreshToken) {
+      this.logger.warn(`User ${user.id} has no Gmail refresh token`);
+      return [];
+    }
+
+    try {
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+      );
+
+      oauth2Client.setCredentials({
+        refresh_token: user.gmailRefreshToken,
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+      // Get list of messages
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults,
+        q: 'is:unread',
+      });
+
+      const messages = response.data.messages || [];
+      const emailMessages: EmailMessage[] = [];
+
+      for (const message of messages) {
+        if (!message.id) continue;
+
+        try {
+          const emailData = await this.fetchAndStoreEmail(
+            gmail,
+            message.id,
+            user,
+          );
+          if (emailData) {
+            emailMessages.push(emailData);
+          }
+        } catch (error) {
+          this.logger.error(`Error fetching message ${message.id}:`, error);
+        }
+      }
+
+      return emailMessages;
+    } catch (error) {
+      this.logger.error(
+        `Error fetching Gmail messages for user ${user.id}:`,
+        error,
+      );
+      return [];
+    }
+  }
+
+  private async fetchAndStoreEmail(
+    gmail: gmail_v1.Gmail,
+    messageId: string,
+    user: User,
+  ): Promise<EmailMessage | null> {
+    try {
+      const messageResponse = await gmail.users.messages.get({
+        userId: 'me',
+        id: messageId,
+        format: 'full',
+      });
+
+      const message = messageResponse.data;
+      if (!message.payload) return null;
+
+      const headers = message.payload.headers || [];
+      const subject =
+        headers.find((h) => h.name === 'Subject')?.value || 'No Subject';
+      const from = headers.find((h) => h.name === 'From')?.value || 'Unknown';
+      const date = headers.find((h) => h.name === 'Date')?.value;
+
+      // Extract sender email from "Name <email>" format
+      const emailMatch = from.match(/<(.+)>/);
+      const senderEmail = emailMatch ? emailMatch[1] : from;
+      const senderName = emailMatch ? from.replace(/<.+>/, '').trim() : from;
+
+      // Get email body
+      const body = this.extractEmailBody(message.payload);
+
+      const createEmailDto: CreateEmailMessageDto = {
+        gmailId: messageId,
+        threadId: message.threadId || messageId,
+        subject,
+        sender: senderName,
+        senderEmail,
+        body,
+        receivedAt: date ? new Date(date) : new Date(),
+        isRead: false,
+      };
+
+      // Check if email already exists
+      const existingEmail = await this.emailRepository.findOne({
+        where: { gmailId: messageId },
+      });
+
+      if (existingEmail) {
+        return existingEmail;
+      }
+
+      // Create new email message
+      const emailMessage = this.emailRepository.create({
+        ...createEmailDto,
+        user,
+      });
+
+      return await this.emailRepository.save(emailMessage);
+    } catch (error) {
+      this.logger.error(`Error processing message ${messageId}:`, error);
+      return null;
+    }
+  }
+
+  private extractEmailBody(payload: gmail_v1.Schema$MessagePart): string {
+    if (payload.body?.data) {
+      return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+    }
+
+    if (payload.parts) {
+      for (const part of payload.parts) {
+        if (part.mimeType === 'text/plain' && part.body?.data) {
+          return Buffer.from(part.body.data, 'base64').toString('utf-8');
+        }
+      }
+
+      // Fallback to HTML if no plain text
+      for (const part of payload.parts) {
+        if (part.mimeType === 'text/html' && part.body?.data) {
+          return Buffer.from(part.body.data, 'base64').toString('utf-8');
+        }
+      }
+    }
+
+    return 'No content available';
+  }
+
+  async findByUserId(userId: string, limit = 50): Promise<EmailMessage[]> {
+    return this.emailRepository.find({
+      where: { user: { id: userId } },
+      order: { receivedAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  async updateEmailSummary(
+    emailId: string,
+    summary: string,
+    priorityScore?: number,
+  ): Promise<void> {
+    await this.emailRepository.update(emailId, {
+      summary,
+      priorityScore,
+      isImportant: priorityScore ? priorityScore > 0.7 : undefined,
+    });
+  }
+
+  async markAsRead(emailId: string): Promise<void> {
+    await this.emailRepository.update(emailId, { isRead: true });
+  }
+}
