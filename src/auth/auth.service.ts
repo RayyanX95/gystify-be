@@ -76,4 +76,15 @@ export class AuthService {
     }
     return user;
   }
+
+  // Test method for development - remove in production
+  async createTestUser(createUserDto: CreateUserDto): Promise<User> {
+    // Generate a test Google ID if not provided
+    const testUserData = {
+      ...createUserDto,
+      googleId: createUserDto.googleId || `test-${Date.now()}`,
+    };
+
+    return this.userService.create(testUserData);
+  }
 }
