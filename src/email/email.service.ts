@@ -16,7 +16,7 @@ export class EmailService {
 
   async fetchGmailMessages(
     user: User,
-    maxResults = 50,
+    maxResults = 5,
   ): Promise<EmailMessage[]> {
     if (!user.gmailRefreshToken) {
       this.logger.warn(`User ${user.id} has no Gmail refresh token`);
@@ -24,25 +24,31 @@ export class EmailService {
     }
 
     try {
+      console.log(`Fetching Gmail messages for user ${user.id}`);
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
       );
 
+      console.log('Setting refresh token credentials');
       oauth2Client.setCredentials({
         refresh_token: user.gmailRefreshToken,
       });
 
       const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+      console.log('Created Gmail client');
 
-      // Get list of messages
+      // Get list of messages (latest emails regardless of read status)
+      console.log('Calling Gmail API to list messages');
       const response = await gmail.users.messages.list({
         userId: 'me',
         maxResults,
-        q: 'is:unread',
+        // Removed 'is:unread' filter to get latest emails regardless of read status
       });
 
+      console.log('Gmail API response:', response.data);
       const messages = response.data.messages || [];
+      console.log(`Found ${messages.length} messages`);
       const emailMessages: EmailMessage[] = [];
 
       for (const message of messages) {

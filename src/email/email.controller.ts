@@ -16,6 +16,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
+
 import { EmailService } from './email.service';
 import { EmailSummaryResponseDto } from '../dto/email.dto';
 import { User } from '../entities/user.entity';
