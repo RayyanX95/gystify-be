@@ -16,7 +16,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { LoginResponseDto, CreateUserDto } from '../dto/auth.dto';
+import { LoginResponseDto } from '../dto/auth.dto';
 import { User } from '../entities/user.entity';
 
 @ApiTags('Authentication')
@@ -71,17 +71,5 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User profile retrieved' })
   getProfile(@Req() req: Request) {
     return req.user;
-  }
-
-  // Test endpoint for development - remove in production
-  @Post('test-user')
-  @ApiOperation({ summary: 'Create test user for development' })
-  @ApiResponse({
-    status: 201,
-    description: 'Test user created and JWT token returned',
-  })
-  async createTestUser(@Body() createUserDto: CreateUserDto) {
-    const user = await this.authService.createTestUser(createUserDto);
-    return this.authService.login(user);
   }
 }
