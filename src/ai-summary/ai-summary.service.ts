@@ -144,15 +144,20 @@ export class AiSummaryService {
         throw new Error('No response from OpenAI');
       }
 
-      const aiResult = JSON.parse(content) as any;
+      const aiResult = JSON.parse(content) as {
+        summary: string;
+        keyInsights: string;
+        topSenders: string[];
+        actionItems: string[];
+      };
 
       return {
-        summary: aiResult.summary as string,
+        summary: aiResult.summary,
         totalEmails: emails.length,
         importantEmails: emails.filter((e) => e.isImportant).length,
-        keyInsights: aiResult.keyInsights as string,
-        topSenders: aiResult.topSenders as string[],
-        actionItems: aiResult.actionItems as string[],
+        keyInsights: aiResult.keyInsights,
+        topSenders: aiResult.topSenders,
+        actionItems: aiResult.actionItems,
       };
     } catch (error) {
       this.logger.error('Error generating daily summary:', error);
@@ -277,7 +282,7 @@ export class AiSummaryService {
       }
 
       try {
-        const parsed = JSON.parse(content);
+        const parsed = JSON.parse(content) as Record<string, any>;
         return parsed;
       } catch (parseError) {
         this.logger.warn(
