@@ -32,6 +32,8 @@ export class CreateEmailMessageDto {
 
   @ApiProperty()
   @IsString()
+  // plain-text snippet (up to 1000 chars)
+  @IsString()
   body: string;
 
   @ApiProperty()

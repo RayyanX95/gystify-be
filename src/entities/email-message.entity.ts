@@ -30,7 +30,9 @@ export class EmailMessage {
   senderEmail: string;
 
   @Column({ type: 'text' })
-  body: string;
+  // store a plain-text snippet (max 1000 chars) instead of full HTML body
+  @Column({ type: 'varchar', length: 1000, nullable: true })
+  body?: string;
 
   @Column({ name: 'received_at' })
   receivedAt: Date;

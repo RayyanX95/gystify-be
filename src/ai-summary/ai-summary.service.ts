@@ -44,7 +44,7 @@ export class AiSummaryService {
         
         Subject: ${email.subject}
         From: ${email.sender} (${email.senderEmail})
-        Content: ${email.body.substring(0, 2000)}
+        Content: ${(email.body ?? '').substring(0, 2000)}
         
         Please provide:
         1. A concise summary (2-3 sentences)

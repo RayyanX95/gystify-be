@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { gmail_v1, google } from 'googleapis';
+import { htmlToText } from 'html-to-text';
 import { EmailMessage, User } from '../entities';
 import { CreateEmailMessageDto } from '../dto/email.dto';
 
@@ -104,8 +105,10 @@ export class EmailService {
       const senderEmail = emailMatch ? emailMatch[1] : from;
       const senderName = emailMatch ? from.replace(/<.+>/, '').trim() : from;
 
-      // Get email body
-      const body = this.extractEmailBody(message.payload);
+      // Get email body (plain text preferred)
+      let body = this.extractEmailBody(message.payload);
+      // strip html tags if any and truncate to 1000 chars
+      body = this.stripHtml(body).trim().slice(0, 1000);
 
       const createEmailDto: CreateEmailMessageDto = {
         gmailId: messageId,
@@ -118,13 +121,22 @@ export class EmailService {
         isRead: false,
       };
 
-      // Check if email already exists
+      // Upsert email by gmailId
       const existingEmail = await this.emailRepository.findOne({
         where: { gmailId: messageId },
       });
 
       if (existingEmail) {
-        return existingEmail;
+        // update metadata if changed
+        this.emailRepository.merge(existingEmail, {
+          subject: createEmailDto.subject,
+          sender: createEmailDto.sender,
+          senderEmail: createEmailDto.senderEmail,
+          receivedAt: createEmailDto.receivedAt,
+          isRead: createEmailDto.isRead,
+          body: createEmailDto.body,
+        });
+        return await this.emailRepository.save(existingEmail);
       }
 
       // Create new email message
@@ -141,8 +153,10 @@ export class EmailService {
   }
 
   private extractEmailBody(payload: gmail_v1.Schema$MessagePart): string {
+    let result = '';
     if (payload.body?.data) {
-      return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+      result = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+      return result;
     }
 
     if (payload.parts) {
@@ -161,6 +175,29 @@ export class EmailService {
     }
 
     return 'No content available';
+  }
+
+  private stripHtml(html: string): string {
+    if (!html) return '';
+
+    // remove style/script blocks before handing off to html-to-text
+    const cleaned = html
+      .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<!--([\s\S]*?)-->/g, ' ');
+
+    let text = htmlToText(cleaned, {
+      wordwrap: 130,
+      selectors: [
+        { selector: 'a', options: { hideLinkHrefIfSameAsText: true } },
+      ],
+    });
+
+    // remove zero-width and common invisible characters
+    text = text.replace(/\u{200B}|\u{200C}|\u{200D}|\u{FEFF}|\u{2060}/gu, '');
+
+    // collapse whitespace and return (preserve full URLs)
+    return text.replace(/\s+/g, ' ').trim();
   }
 
   async findByUserId(userId: string, limit = 50): Promise<EmailMessage[]> {
