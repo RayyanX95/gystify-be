@@ -180,4 +180,136 @@ export class AiSummaryService {
       };
     }
   }
+
+  // Test method to verify OpenAI connectivity
+  async testOpenAI(): Promise<string> {
+    if (!this.openai) {
+      throw new Error('OpenAI not configured');
+    }
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: 'Say "Hello World"' }],
+        temperature: 0,
+        max_tokens: 10,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error(
+          `No content in test response. Finish reason: ${response.choices[0]?.finish_reason}`,
+        );
+      }
+
+      return content;
+    } catch (error) {
+      this.logger.error('OpenAI test failed:', error);
+      throw error;
+    }
+  }
+
+  async generateDetailedSummary(
+    emails: EmailMessage[],
+    context?: string,
+  ): Promise<Record<string, any>> {
+    if (!this.openai) {
+      throw new Error('OpenAI not configured');
+    }
+
+    if (emails.length === 0) {
+      return {
+        error: 'No emails provided for detailed summary',
+      };
+    }
+
+    try {
+      // Truncate emails to prevent token limit issues
+      const emailData = emails.slice(0, 20).map((email) => ({
+        subject: email.subject,
+        sender: email.sender,
+        body: email.body ? email.body.substring(0, 500) : '',
+        receivedAt: email.receivedAt,
+        isImportant: email.isImportant,
+      }));
+
+      const contextInstruction = context ? `Context: ${context}\n\n` : '';
+
+      const prompt = `
+        ${contextInstruction}Create a detailed, actionable report from these emails:
+        
+        ${JSON.stringify(emailData, null, 2)}
+        
+        Please provide a structured detailed summary with:
+        1. Key highlights from all emails
+        2. Priority action items that need attention
+        3. Suggested reply drafts (if applicable)
+        4. Important deadlines or dates mentioned
+        5. Main topics/themes covered
+        6. Risks, blockers, or unresolved questions
+        7. Categorize emails by sender or topic
+        
+        Respond in JSON format:
+        {
+          "rawSummary": "string",
+          "highlights": ["string"],
+          "actionItems": ["string"],
+          "suggestedReplies": ["string"],
+          "deadlines": ["string"],
+          "mainTopics": ["string"],
+          "risks": ["string"],
+          "categories": {"category_name": ["email subjects"]},
+          "notes": "optional"
+        }
+      `;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1200,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        this.logger.warn('No content from OpenAI detailed summary');
+        throw new Error('No response content from OpenAI');
+      }
+
+      try {
+        const parsed = JSON.parse(content);
+        return parsed;
+      } catch (parseError) {
+        this.logger.warn(
+          'Failed to parse detailed summary as JSON:',
+          parseError,
+        );
+        // Return raw content as fallback
+        return {
+          raw: content,
+          highlights: [`Generated summary for ${emails.length} emails`],
+          actionItems: ['Review the generated summary'],
+          suggestedReplies: [],
+          deadlines: [],
+          mainTopics: [
+            `Email analysis from ${emails[0]?.sender || 'various senders'}`,
+          ],
+        };
+      }
+    } catch (error) {
+      this.logger.error('Error generating detailed summary:', error);
+      // Fallback response
+      return {
+        error: `Failed to generate detailed summary: ${error instanceof Error ? error.message : String(error)}`,
+        highlights: [
+          `Analysis of ${emails.length} emails from ${new Date().toLocaleDateString()}`,
+        ],
+        actionItems: ['Review emails manually', 'Check for urgent items'],
+        suggestedReplies: [],
+        deadlines: [],
+        mainTopics: emails.map((e) => e.subject).slice(0, 5),
+        fallback: true,
+      };
+    }
+  }
 }
