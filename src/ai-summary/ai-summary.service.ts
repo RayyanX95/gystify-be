@@ -3,6 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { EmailMessage } from '../entities/email-message.entity';
 
+/**
+ * Structured result for a single email analysis.
+ * summary: short text summary of the email
+ * priorityScore: numeric urgency/importance score (0-1)
+ * keyInsights: list of important points
+ * actionItems: suggested follow-up tasks
+ */
 export interface EmailSummaryResult {
   summary: string;
   priorityScore: number;
@@ -10,6 +17,15 @@ export interface EmailSummaryResult {
   actionItems: string[];
 }
 
+/**
+ * Structured result for a daily summary aggregation.
+ * summary: overall text summary for the day
+ * totalEmails: number of emails processed
+ * importantEmails: count of emails marked important
+ * keyInsights: short list/string of insights
+ * topSenders: frequent senders for the day
+ * actionItems: suggested follow-ups for the user
+ */
 export interface DailySummaryResult {
   summary: string;
   totalEmails: number;
@@ -20,6 +36,10 @@ export interface DailySummaryResult {
 }
 
 @Injectable()
+/**
+ * AiSummaryService - wraps OpenAI calls to produce structured summaries.
+ * Methods provide safe fallbacks and limit token usage by truncating inputs.
+ */
 export class AiSummaryService {
   private readonly logger = new Logger(AiSummaryService.name);
   private openai: OpenAI;
@@ -33,6 +53,10 @@ export class AiSummaryService {
     }
   }
 
+  /**
+   * Summarize a single email into a compact JSON structure.
+   * Truncates long email bodies and falls back to a simple summary on errors.
+   */
   async summarizeEmail(email: EmailMessage): Promise<EmailSummaryResult> {
     if (!this.openai) {
       throw new Error('OpenAI not configured');
@@ -86,6 +110,10 @@ export class AiSummaryService {
     }
   }
 
+  /**
+   * Produce an aggregated daily summary from a list of emails.
+   * Returns a small structured result and provides a fallback when the AI call fails.
+   */
   async generateDailySummary(
     emails: EmailMessage[],
   ): Promise<DailySummaryResult> {
@@ -186,6 +214,12 @@ export class AiSummaryService {
     }
   }
 
+  /**
+   * Generate a detailed, actionable report from multiple emails.
+   * Limits the number and size of emails sent to the model and accepts an optional
+   * textual `context` to guide the analysis. Returns JSON when possible, or a
+   * structured fallback object on error.
+   */
   async generateDetailedSummary(
     emails: EmailMessage[],
     context?: string,
