@@ -65,7 +65,7 @@ JWT_EXPIRES_IN=7d
 # Google OAuth2
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:8000/auth/google/callback
+GOOGLE_FE_CALLBACK_URL=http://localhost:8000/auth/google/callback
 
 # OpenAI Configuration
 OPENAI_API_KEY=your-openai-api-key

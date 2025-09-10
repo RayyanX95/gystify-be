@@ -50,6 +50,20 @@ export class AuthController {
     res.redirect(redirectUrl);
   }
 
+  @Post('google/exchange')
+  @ApiOperation({ summary: 'Exchange Google authorization code for tokens' })
+  @ApiResponse({
+    status: 200,
+    description: 'Exchange successful',
+    type: LoginResponseDto,
+  })
+  async exchangeCode(
+    @Body() body: { code: string; state?: string; redirectUri?: string },
+  ) {
+    const { code, redirectUri } = body;
+    return this.authService.exchangeGoogleCode(code, redirectUri);
+  }
+
   @Get('profile')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
