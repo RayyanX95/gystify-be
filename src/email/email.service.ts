@@ -216,7 +216,7 @@ export class EmailService {
    *
    * @param emailId - id of the EmailMessage to mark read
    */
-  async markAsRead(emailId: string): Promise<void> {
-    await this.emailRepository.update(emailId, { isRead: true });
-  }
+  // async markAsRead(emailId: string): Promise<void> {
+  //   await this.emailRepository.update(emailId, { isRead: true });
+  // }
 }

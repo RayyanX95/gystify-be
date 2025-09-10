@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Param,
+  // Param,
   UseGuards,
   Req,
   Query,
@@ -31,9 +31,16 @@ export class EmailController {
   @Post('sync')
   @ApiOperation({ summary: 'Sync emails from Gmail' })
   @ApiResponse({ status: 200, description: 'Emails synced successfully' })
-  async syncEmails(@Req() req: Request) {
+  @ApiQuery({ name: 'maxResults', required: false, type: Number })
+  async syncEmails(
+    @Req() req: Request,
+    @Query('maxResults') maxResults?: string,
+  ): Promise<{ message: string; count: number }> {
     const user = req.user as User;
-    const emails = await this.emailService.fetchGmailMessages(user);
+    const emails = await this.emailService.fetchGmailMessages(
+      user,
+      maxResults ? parseInt(maxResults, 10) : 5,
+    );
     return {
       message: 'Emails synced successfully',
       count: emails.length,
@@ -50,15 +57,15 @@ export class EmailController {
   })
   async getEmails(@Req() req: Request, @Query('limit') limit?: string) {
     const user = req.user as User;
-    const limitNumber = limit ? parseInt(limit, 10) : 50;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
     return this.emailService.findByUserId(user.id, limitNumber);
   }
 
-  @Post(':id/read')
-  @ApiOperation({ summary: 'Mark email as read' })
-  @ApiResponse({ status: 200, description: 'Email marked as read' })
-  async markAsRead(@Param('id') emailId: string) {
-    await this.emailService.markAsRead(emailId);
-    return { message: 'Email marked as read' };
-  }
+  // @Post(':id/read')
+  // @ApiOperation({ summary: 'Mark email as read' })
+  // @ApiResponse({ status: 200, description: 'Email marked as read' })
+  // async markAsRead(@Param('id') emailId: string) {
+  //   await this.emailService.markAsRead(emailId);
+  //   return { message: 'Email marked as read' };
+  // }
 }
