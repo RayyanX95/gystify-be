@@ -83,17 +83,6 @@ export class SummaryService {
     return short;
   }
 
-  /** Expand a persisted daily summary with detailed AI output */
-  async expandSummary(
-    detailEmails: EmailMessage[],
-    contextSummary?: string,
-  ): Promise<Record<string, any>> {
-    return this.aiSummaryService.generateDetailedSummary(
-      detailEmails,
-      contextSummary,
-    );
-  }
-
   /** Expand a daily summary by ID - fetch emails for that date and generate detailed report */
   async expandSummaryById(
     summaryId: string,
@@ -134,5 +123,13 @@ export class SummaryService {
       emails,
       contextSummary,
     );
+  }
+
+  async getDailySummaries(userId: string, limit: number) {
+    return this.dailySummaryRepository.find({
+      where: { user: { id: userId } },
+      order: { summaryDate: 'DESC' },
+      take: limit,
+    });
   }
 }

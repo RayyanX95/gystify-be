@@ -186,34 +186,6 @@ export class AiSummaryService {
     }
   }
 
-  // Test method to verify OpenAI connectivity
-  async testOpenAI(): Promise<string> {
-    if (!this.openai) {
-      throw new Error('OpenAI not configured');
-    }
-
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: 'Say "Hello World"' }],
-        temperature: 0,
-        max_tokens: 10,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error(
-          `No content in test response. Finish reason: ${response.choices[0]?.finish_reason}`,
-        );
-      }
-
-      return content;
-    } catch (error) {
-      this.logger.error('OpenAI test failed:', error);
-      throw error;
-    }
-  }
-
   async generateDetailedSummary(
     emails: EmailMessage[],
     context?: string,

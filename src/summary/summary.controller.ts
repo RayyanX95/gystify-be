@@ -16,25 +16,18 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+// InjectRepository removed; we inject the SummaryService directly
 import type { Request } from 'express';
 import { DailySummary, User } from '../entities';
 import type { DailySummaryResult } from '../ai-summary/ai-summary.service';
 import { SummaryService } from './summary.service';
-import { AiSummaryService } from '../ai-summary/ai-summary.service';
 
 @ApiTags('Daily Summaries')
 @ApiBearerAuth()
 @Controller('summaries')
 @UseGuards(AuthGuard('jwt'))
 export class SummaryController {
-  constructor(
-    @InjectRepository(DailySummary)
-    private dailySummaryRepository: Repository<DailySummary>,
-    private summaryService: SummaryService,
-    private aiSummaryService: AiSummaryService,
-  ) {}
+  constructor(private readonly summaryService: SummaryService) {}
 
   @Post('generate')
   @ApiOperation({
@@ -122,29 +115,6 @@ export class SummaryController {
   async getDailySummaries(@Req() req: Request, @Query('limit') limit?: string) {
     const user = req.user as User;
     const limitNumber = limit ? parseInt(limit, 10) : 30;
-
-    return this.dailySummaryRepository.find({
-      where: { user: { id: user.id } },
-      order: { summaryDate: 'DESC' },
-      take: limitNumber,
-    });
-  }
-
-  @Get('test-openai')
-  @ApiOperation({ summary: 'Test OpenAI connectivity' })
-  @ApiResponse({
-    status: 200,
-    description: 'OpenAI test response',
-    type: String,
-  })
-  async testOpenAI(): Promise<{ message: string }> {
-    try {
-      const result = await this.aiSummaryService.testOpenAI();
-      return { message: result };
-    } catch (error) {
-      return {
-        message: `Error: ${error instanceof Error ? error.message : String(error)}`,
-      };
-    }
+    return this.summaryService.getDailySummaries(user.id, limitNumber);
   }
 }
