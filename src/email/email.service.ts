@@ -2,11 +2,19 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { gmail_v1, google } from 'googleapis';
-import { htmlToText } from 'html-to-text';
+import {
+  extractEmailBody,
+  htmlToPlainText,
+  normalizeSnippet,
+} from './email.utils';
 import { EmailMessage, User } from '../entities';
 import { CreateEmailMessageDto } from '../dto/email.dto';
 
 @Injectable()
+/**
+ * Service responsible for fetching emails from Gmail, cleaning content,
+ * and persisting email metadata/snippets to the database.
+ */
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
@@ -15,6 +23,13 @@ export class EmailService {
     private emailRepository: Repository<EmailMessage>,
   ) {}
 
+  /**
+   * Fetch the latest messages for a user from Gmail and store them locally.
+   * Returns the EmailMessage entities that were fetched/created/updated.
+   *
+   * @param user - the owning User entity (must include gmailRefreshToken)
+   * @param maxResults - maximum number of messages to request from Gmail
+   */
   async fetchGmailMessages(
     user: User,
     maxResults = 5,
@@ -50,6 +65,7 @@ export class EmailService {
       console.log('Gmail API response:', response.data);
       const messages = response.data.messages || [];
       console.log(`Found ${messages.length} messages`);
+
       const emailMessages: EmailMessage[] = [];
 
       for (const message of messages) {
@@ -79,6 +95,15 @@ export class EmailService {
     }
   }
 
+  /**
+   * Fetch a single Gmail message by id, extract and normalize the body,
+   * then upsert the corresponding EmailMessage row for `user`.
+   * Returns the saved EmailMessage or null on error.
+   *
+   * @param gmail - authenticated Gmail client
+   * @param messageId - Gmail message id
+   * @param user - owning User entity
+   */
   private async fetchAndStoreEmail(
     gmail: gmail_v1.Gmail,
     messageId: string,
@@ -106,9 +131,9 @@ export class EmailService {
       const senderName = emailMatch ? from.replace(/<.+>/, '').trim() : from;
 
       // Get email body (plain text preferred)
-      let body = this.extractEmailBody(message.payload);
-      // strip html tags if any and truncate to 1000 chars
-      body = this.stripHtml(body).trim().slice(0, 1000);
+      let body = extractEmailBody(message.payload);
+      // convert html to plain text, normalize and truncate to 1000 chars
+      body = normalizeSnippet(htmlToPlainText(body), 1000);
 
       const createEmailDto: CreateEmailMessageDto = {
         gmailId: messageId,
@@ -152,54 +177,12 @@ export class EmailService {
     }
   }
 
-  private extractEmailBody(payload: gmail_v1.Schema$MessagePart): string {
-    let result = '';
-    if (payload.body?.data) {
-      result = Buffer.from(payload.body.data, 'base64').toString('utf-8');
-      return result;
-    }
-
-    if (payload.parts) {
-      for (const part of payload.parts) {
-        if (part.mimeType === 'text/plain' && part.body?.data) {
-          return Buffer.from(part.body.data, 'base64').toString('utf-8');
-        }
-      }
-
-      // Fallback to HTML if no plain text
-      for (const part of payload.parts) {
-        if (part.mimeType === 'text/html' && part.body?.data) {
-          return Buffer.from(part.body.data, 'base64').toString('utf-8');
-        }
-      }
-    }
-
-    return 'No content available';
-  }
-
-  private stripHtml(html: string): string {
-    if (!html) return '';
-
-    // remove style/script blocks before handing off to html-to-text
-    const cleaned = html
-      .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<!--([\s\S]*?)-->/g, ' ');
-
-    let text = htmlToText(cleaned, {
-      wordwrap: 130,
-      selectors: [
-        { selector: 'a', options: { hideLinkHrefIfSameAsText: true } },
-      ],
-    });
-
-    // remove zero-width and common invisible characters
-    text = text.replace(/\u{200B}|\u{200C}|\u{200D}|\u{FEFF}|\u{2060}/gu, '');
-
-    // collapse whitespace and return (preserve full URLs)
-    return text.replace(/\s+/g, ' ').trim();
-  }
-
+  /**
+   * Return the most recent EmailMessage records for a user.
+   *
+   * @param userId - the id of the user to query
+   * @param limit - maximum number of records to return
+   */
   async findByUserId(userId: string, limit = 50): Promise<EmailMessage[]> {
     return this.emailRepository.find({
       where: { user: { id: userId } },
@@ -208,6 +191,14 @@ export class EmailService {
     });
   }
 
+  /**
+   * Update an email's AI-generated summary and optional priority score.
+   * Also sets `isImportant` when priorityScore exceeds the threshold.
+   *
+   * @param emailId - id of the EmailMessage entity to update
+   * @param summary - generated summary text
+   * @param priorityScore - optional numeric importance score (0..1)
+   */
   async updateEmailSummary(
     emailId: string,
     summary: string,
@@ -220,6 +211,11 @@ export class EmailService {
     });
   }
 
+  /**
+   * Mark an email as read in the database.
+   *
+   * @param emailId - id of the EmailMessage to mark read
+   */
   async markAsRead(emailId: string): Promise<void> {
     await this.emailRepository.update(emailId, { isRead: true });
   }
