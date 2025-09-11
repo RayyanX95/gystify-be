@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
+import { EmailService } from '../email/email.service';
+import { UserService } from '../user/user.service';
 import { AiSummaryService } from '../ai-summary/ai-summary.service';
 import { DailySummary } from '../entities/daily-summary.entity';
-import { EmailMessage } from '../entities/email-message.entity';
 
 @Injectable()
 export class SummaryService {
@@ -12,8 +13,8 @@ export class SummaryService {
   constructor(
     @InjectRepository(DailySummary)
     private dailySummaryRepository: Repository<DailySummary>,
-    @InjectRepository(EmailMessage)
-    private emailRepo: Repository<EmailMessage>,
+    private emailService: EmailService,
+    private userService: UserService,
     private aiSummaryService: AiSummaryService,
   ) {}
 
@@ -33,12 +34,12 @@ export class SummaryService {
       },
     });
 
-    // fetch emails for the user (last 100)
-    const emails = await this.emailRepo.find({
-      where: { user: { id: userId } },
-      order: { receivedAt: 'DESC' },
-      take: 100,
-    });
+    // fetch emails for the user from Gmail directly (no DB persistence)
+    const user = await this.userService.findById(userId);
+    const emails = await this.emailService.fetchGmailMessagesNoPersist(
+      user,
+      10,
+    );
 
     const aiResult = await this.aiSummaryService.generateDailySummary(emails);
 
@@ -89,14 +90,14 @@ export class SummaryService {
     const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
 
-    const emails = await this.emailRepo.find({
-      where: {
-        user: { id: summary.user.id },
-        receivedAt: Between(startOfDay, endOfDay),
-      },
-      order: { receivedAt: 'DESC' },
-      take: 10, // <-- Limit to 10 emails
-    });
+    // Fetch emails from provider for the summary date (no DB persistence)
+    const user = summary.user;
+    const emails = await this.emailService.fetchGmailMessagesNoPersistBetween(
+      user,
+      startOfDay,
+      endOfDay,
+      50,
+    );
 
     if (emails.length === 0) {
       throw new Error(
@@ -114,7 +115,7 @@ export class SummaryService {
     return this.dailySummaryRepository.find({
       where: { user: { id: userId } },
       order: { summaryDate: 'DESC' },
-      take: limit,
+      take: limit || 10,
     });
   }
 }

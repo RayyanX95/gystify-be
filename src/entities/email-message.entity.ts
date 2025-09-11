@@ -4,10 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
-import { User } from './user.entity';
 
 @Entity('email_messages')
 export class EmailMessage {
@@ -68,8 +65,4 @@ export class EmailMessage {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-  @ManyToOne(() => User, (user) => user.emailMessages)
-  @JoinColumn({ name: 'user_id' })
-  user: User;
 }

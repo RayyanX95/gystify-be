@@ -31,7 +31,7 @@ export class SchedulerService {
 
     for (const user of activeUsers) {
       try {
-        await this.emailService.fetchGmailMessages(user, 10);
+        await this.emailService.fetchGmailMessagesNoPersist(user, 10);
         this.logger.log(`Synced emails for user ${user.email}`);
       } catch (error) {
         this.logger.error(
@@ -52,39 +52,39 @@ export class SchedulerService {
       where: { isActive: true },
     });
 
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    // const today = new Date();
+    // const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    // const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
     for (const user of users) {
       try {
         // Get yesterday's emails
-        const emails = await this.emailService.findByUserId(user.id, 100);
-        const yesterdayEmails = emails.filter(
-          (email) =>
-            email.receivedAt >= startOfDay && email.receivedAt <= endOfDay,
-        );
+        // const emails = await this.emailService.findByUserId(user.id, 100);
+        // const yesterdayEmails = emails.filter(
+        //   (email) =>
+        //     email.receivedAt >= startOfDay && email.receivedAt <= endOfDay,
+        // );
 
-        if (yesterdayEmails.length === 0) {
-          this.logger.log(`No emails to summarize for user ${user.email}`);
-          continue;
-        }
+        // if (yesterdayEmails.length === 0) {
+        //   this.logger.log(`No emails to summarize for user ${user.email}`);
+        //   continue;
+        // }
 
         // Generate AI summary
-        const summaryResult =
-          await this.aiSummaryService.generateDailySummary(yesterdayEmails);
+        // const summaryResult =
+        //   await this.aiSummaryService.generateDailySummary(yesterdayEmails);
 
-        // Save daily summary
-        const dailySummary = this.dailySummaryRepository.create({
-          user,
-          summaryDate: startOfDay,
-          totalEmails: summaryResult.totalEmails,
-          importantEmails: summaryResult.importantEmails,
-          summary: summaryResult.summary,
-          keyInsights: summaryResult.keyInsights,
-        });
+        // // Save daily summary
+        // const dailySummary = this.dailySummaryRepository.create({
+        //   user,
+        //   summaryDate: startOfDay,
+        //   totalEmails: summaryResult.totalEmails,
+        //   importantEmails: summaryResult.importantEmails,
+        //   summary: summaryResult.summary,
+        //   keyInsights: summaryResult.keyInsights,
+        // });
 
-        await this.dailySummaryRepository.save(dailySummary);
+        // await this.dailySummaryRepository.save(dailySummary);
         this.logger.log(`Generated daily summary for user ${user.email}`);
       } catch (error) {
         this.logger.error(
@@ -107,28 +107,26 @@ export class SchedulerService {
 
     for (const user of users) {
       try {
-        // Get unsummarized emails
-        const emails = await this.emailService.findByUserId(user.id, 50);
-        const unsummarizedEmails = emails.filter((email) => !email.summary);
-
-        for (const email of unsummarizedEmails) {
-          try {
-            const summaryResult =
-              await this.aiSummaryService.summarizeEmail(email);
-            await this.emailService.updateEmailSummary(
-              email.id,
-              summaryResult.summary,
-              summaryResult.priorityScore,
-            );
-            this.logger.debug(`Summarized email ${email.id}`);
-          } catch (error) {
-            this.logger.error(`Error summarizing email ${email.id}:`, error);
-          }
-        }
-
-        this.logger.log(
-          `Summarized ${unsummarizedEmails.length} emails for user ${user.email}`,
-        );
+        // // Get unsummarized emails
+        // const emails = await this.emailService.findByUserId(user.id, 50);
+        // const unsummarizedEmails = emails.filter((email) => !email.summary);
+        // for (const email of unsummarizedEmails) {
+        //   try {
+        //     const summaryResult =
+        //       await this.aiSummaryService.summarizeEmail(email);
+        //     await this.emailService.updateEmailSummary(
+        //       email.id,
+        //       summaryResult.summary,
+        //       summaryResult.priorityScore,
+        //     );
+        //     this.logger.debug(`Summarized email ${email.id}`);
+        //   } catch (error) {
+        //     this.logger.error(`Error summarizing email ${email.id}:`, error);
+        //   }
+        // }
+        // this.logger.log(
+        //   `Summarized ${unsummarizedEmails.length} emails for user ${user.email}`,
+        // );
       } catch (error) {
         this.logger.error(
           `Error in email summarization for user ${user.email}:`,

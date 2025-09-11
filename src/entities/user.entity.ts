@@ -4,9 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
 } from 'typeorm';
-import { EmailMessage } from './email-message.entity';
 
 @Entity('users')
 export class User {
@@ -40,6 +38,5 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToMany(() => EmailMessage, (emailMessage) => emailMessage.user)
-  emailMessages: EmailMessage[];
+  // Previously had relation to EmailMessage; removed because emails are not persisted.
 }
