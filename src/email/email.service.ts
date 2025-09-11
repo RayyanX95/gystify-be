@@ -96,6 +96,37 @@ export class EmailService {
   }
 
   /**
+   * Parse Gmail message metadata to extract importance signals.
+   * Uses labelIds and common headers like Importance/Priority/X-Priority.
+   */
+  private parseGmailImportance(message: gmail_v1.Schema$Message) {
+    const labels = new Set(
+      (message.labelIds || []).map((s) => s.toUpperCase()),
+    );
+    console.log('labels :>> ', labels);
+    if (labels.has('IMPORTANT')) return { isImportant: true, score: 1.0 };
+    if (labels.has('STARRED')) return { isImportant: true, score: 0.85 };
+
+    const headers = message.payload?.headers || [];
+    const findHeader = (name: string) =>
+      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value;
+
+    const importance = findHeader('Importance')?.toLowerCase();
+    const priority = findHeader('Priority')?.toLowerCase();
+    const xPriority = findHeader('X-Priority');
+
+    if (importance === 'high' || priority === 'urgent') {
+      return { isImportant: true, score: 0.8 };
+    }
+
+    if (xPriority && /^[1-2]/.test(xPriority)) {
+      return { isImportant: true, score: 0.9 };
+    }
+
+    return { isImportant: false, score: 0.5 };
+  }
+
+  /**
    * Fetch a single Gmail message by id, extract and normalize the body,
    * then upsert the corresponding EmailMessage row for `user`.
    * Returns the saved EmailMessage or null on error.
@@ -115,6 +146,8 @@ export class EmailService {
         id: messageId,
         format: 'full',
       });
+
+      console.log('messageResponse ----- :>> ', messageResponse.data);
 
       const message = messageResponse.data;
       if (!message.payload) return null;
@@ -146,6 +179,25 @@ export class EmailService {
         isRead: false,
       };
 
+      // Use Gmail's snippet when available; otherwise fallback to our normalized body
+      // Truncate to 1000 chars to match DB column length
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      createEmailDto.snippet = (message.snippet || body || subject).substring(
+        0,
+        1000,
+      );
+
+      // Parse Gmail importance signals and attach to DTO
+      const importance = this.parseGmailImportance(message);
+      // attach optional fields if present
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      createEmailDto.priorityScore = importance.score;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      createEmailDto.isImportant = importance.isImportant;
+
       // Upsert email by gmailId
       const existingEmail = await this.emailRepository.findOne({
         where: { gmailId: messageId },
@@ -160,6 +212,8 @@ export class EmailService {
           receivedAt: createEmailDto.receivedAt,
           isRead: createEmailDto.isRead,
           body: createEmailDto.body,
+          priorityScore: createEmailDto.priorityScore,
+          isImportant: createEmailDto.isImportant,
         });
         return await this.emailRepository.save(existingEmail);
       }
@@ -168,6 +222,8 @@ export class EmailService {
       const emailMessage = this.emailRepository.create({
         ...createEmailDto,
         user,
+        priorityScore: createEmailDto.priorityScore,
+        isImportant: createEmailDto.isImportant,
       });
 
       return await this.emailRepository.save(emailMessage);

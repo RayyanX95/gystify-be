@@ -29,10 +29,18 @@ export class EmailMessage {
   @Column({ name: 'sender_email' })
   senderEmail: string;
 
-  @Column({ type: 'text' })
-  // store a plain-text snippet (max 1000 chars) instead of full HTML body
-  @Column({ type: 'varchar', length: 1000, nullable: true })
+  /**
+   * Full plain-text body (may be truncated when saving to DB).
+   */
+  @Column({ type: 'text', nullable: true })
   body?: string;
+
+  /**
+   * Short preview/snippet taken from Gmail's `message.snippet` or a truncated
+   * version of the body. Used for fast list previews.
+   */
+  @Column({ type: 'varchar', length: 1000, nullable: true })
+  snippet?: string;
 
   @Column({ name: 'received_at' })
   receivedAt: Date;

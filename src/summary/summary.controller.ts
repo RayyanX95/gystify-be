@@ -19,12 +19,11 @@ import {
 // InjectRepository removed; we inject the SummaryService directly
 import type { Request } from 'express';
 import { DailySummary, User } from '../entities';
-import type { DailySummaryResult } from '../ai-summary/ai-summary.service';
 import { SummaryService } from './summary.service';
 
-@ApiTags('Daily Summaries')
+@ApiTags('Daily Summary')
 @ApiBearerAuth()
-@Controller('summaries')
+@Controller('summary')
 @UseGuards(AuthGuard('jwt'))
 export class SummaryController {
   constructor(private readonly summaryService: SummaryService) {}
@@ -45,23 +44,6 @@ export class SummaryController {
     const user = req.user as User;
     const result = await this.summaryService.generateAndPersist(user.id);
     return result;
-  }
-
-  @Post('preview')
-  @ApiOperation({
-    summary: 'Preview a short daily summary without persisting',
-    description:
-      'Runs a lightweight AI summary over a subset of recent emails and returns the generated summary. This does not write anything to the database.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Preview summary generated (not persisted)',
-    type: DailySummary,
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async previewForUser(@Req() req: Request): Promise<DailySummaryResult> {
-    const user = req.user as User;
-    return this.summaryService.previewSummary(user.id);
   }
 
   @Post(':id/expand')
@@ -105,16 +87,16 @@ export class SummaryController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get daily summaries for user' })
+  @ApiOperation({ summary: 'Get daily Summary for user' })
   @ApiResponse({
     status: 200,
-    description: 'Daily summaries retrieved',
+    description: 'Daily Summary retrieved',
     isArray: true,
     type: DailySummary,
   })
-  async getDailySummaries(@Req() req: Request, @Query('limit') limit?: string) {
+  async getDailySummary(@Req() req: Request, @Query('limit') limit?: string) {
     const user = req.user as User;
     const limitNumber = limit ? parseInt(limit, 10) : 30;
-    return this.summaryService.getDailySummaries(user.id, limitNumber);
+    return this.summaryService.getDailySummary(user.id, limitNumber);
   }
 }

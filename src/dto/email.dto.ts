@@ -36,6 +36,11 @@ export class CreateEmailMessageDto {
   @IsString()
   body: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  snippet?: string;
+
   @ApiProperty()
   @Type(() => Date)
   @IsDate()
@@ -86,4 +91,7 @@ export class EmailSummaryResponseDto {
 
   @ApiProperty()
   summary: string;
+
+  @ApiPropertyOptional()
+  snippet?: string;
 }

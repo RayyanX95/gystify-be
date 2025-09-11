@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { EmailMessage } from '../entities/email-message.entity';
+import { detailedSummaryPrompt, summaryPrompt } from './ai-summary.utils';
 
 /**
  * Structured result for a single email analysis.
@@ -140,25 +141,7 @@ export class AiSummaryService {
         isImportant: email.isImportant,
       }));
 
-      const prompt = `
-        Create a daily email summary based on these emails:
-        
-        ${JSON.stringify(emailSummaries, null, 2)}
-        
-        Please provide:
-        1. An overall summary of email activity
-        2. Key insights from the day's emails
-        3. Top senders (most frequent)
-        4. Action items that need attention
-        
-        Respond in JSON format:
-        {
-          "summary": "string",
-          "keyInsights": "string",
-          "topSenders": ["string"],
-          "actionItems": ["string"]
-        }
-      `;
+      const prompt = summaryPrompt(emailSummaries);
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
@@ -237,6 +220,7 @@ export class AiSummaryService {
     try {
       // Truncate emails to prevent token limit issues
       const emailData = emails.slice(0, 20).map((email) => ({
+        summary: email.summary || `Email about: ${email.subject}`,
         subject: email.subject,
         sender: email.sender,
         body: email.body ? email.body.substring(0, 500) : '',
@@ -246,33 +230,7 @@ export class AiSummaryService {
 
       const contextInstruction = context ? `Context: ${context}\n\n` : '';
 
-      const prompt = `
-        ${contextInstruction}Create a detailed, actionable report from these emails:
-        
-        ${JSON.stringify(emailData, null, 2)}
-        
-        Please provide a structured detailed summary with:
-        1. Key highlights from all emails
-        2. Priority action items that need attention
-        3. Suggested reply drafts (if applicable)
-        4. Important deadlines or dates mentioned
-        5. Main topics/themes covered
-        6. Risks, blockers, or unresolved questions
-        7. Categorize emails by sender or topic
-        
-        Respond in JSON format:
-        {
-          "rawSummary": "string",
-          "highlights": ["string"],
-          "actionItems": ["string"],
-          "suggestedReplies": ["string"],
-          "deadlines": ["string"],
-          "mainTopics": ["string"],
-          "risks": ["string"],
-          "categories": {"category_name": ["email subjects"]},
-          "notes": "optional"
-        }
-      `;
+      const prompt = detailedSummaryPrompt(emailData, contextInstruction);
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',

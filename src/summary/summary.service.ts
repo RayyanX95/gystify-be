@@ -68,21 +68,6 @@ export class SummaryService {
     }
   }
 
-  /** Preview a summary without persisting */
-  async previewSummary(
-    userId: string,
-  ): Promise<import('../ai-summary/ai-summary.service').DailySummaryResult> {
-    const emails = await this.emailRepo.find({
-      where: { user: { id: userId } },
-      order: { receivedAt: 'DESC' },
-      take: 50,
-    });
-
-    // Use ai service to create a short summary object
-    const short = await this.aiSummaryService.generateDailySummary(emails);
-    return short;
-  }
-
   /** Expand a daily summary by ID - fetch emails for that date and generate detailed report */
   async expandSummaryById(
     summaryId: string,
@@ -125,7 +110,7 @@ export class SummaryService {
     );
   }
 
-  async getDailySummaries(userId: string, limit: number) {
+  async getDailySummary(userId: string, limit: number) {
     return this.dailySummaryRepository.find({
       where: { user: { id: userId } },
       order: { summaryDate: 'DESC' },
