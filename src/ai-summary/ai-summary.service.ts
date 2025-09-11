@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { EmailMessage } from '../entities/email-message.entity';
 import { detailedSummaryPrompt, summaryPrompt } from './ai-summary.utils';
+import { GmailMessageDto } from 'src/dto/email.dto';
 
 /**
  * Structured result for a single email analysis.
@@ -58,7 +58,7 @@ export class AiSummaryService {
    * Summarize a single email into a compact JSON structure.
    * Truncates long email bodies and falls back to a simple summary on errors.
    */
-  async summarizeEmail(email: EmailMessage): Promise<EmailSummaryResult> {
+  async summarizeEmail(email: GmailMessageDto): Promise<EmailSummaryResult> {
     if (!this.openai) {
       throw new Error('OpenAI not configured');
     }
@@ -116,7 +116,7 @@ export class AiSummaryService {
    * Returns a small structured result and provides a fallback when the AI call fails.
    */
   async generateDailySummary(
-    emails: EmailMessage[],
+    emails: GmailMessageDto[],
   ): Promise<DailySummaryResult> {
     if (!this.openai) {
       throw new Error('OpenAI not configured');
@@ -162,6 +162,8 @@ export class AiSummaryService {
         actionItems: string[];
       };
 
+      console.log('Summary -- aiResult :>> ', aiResult);
+
       return {
         summary: aiResult.summary,
         totalEmails: emails.length,
@@ -204,7 +206,7 @@ export class AiSummaryService {
    * structured fallback object on error.
    */
   async generateDetailedSummary(
-    emails: EmailMessage[],
+    emails: GmailMessageDto[],
     context?: string,
   ): Promise<Record<string, any>> {
     if (!this.openai) {
@@ -239,14 +241,15 @@ export class AiSummaryService {
         max_tokens: 1200,
       });
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
+      const aiResult = response.choices[0]?.message?.content;
+      if (!aiResult) {
         this.logger.warn('No content from OpenAI detailed summary');
         throw new Error('No response content from OpenAI');
       }
+      console.log('DeailSummary -- aiResult :>> ', aiResult);
 
       try {
-        const parsed = JSON.parse(content) as Record<string, any>;
+        const parsed = JSON.parse(aiResult) as Record<string, any>;
         return parsed;
       } catch (parseError) {
         this.logger.warn(
@@ -255,7 +258,7 @@ export class AiSummaryService {
         );
         // Return raw content as fallback
         return {
-          raw: content,
+          raw: aiResult,
           highlights: [`Generated summary for ${emails.length} emails`],
           actionItems: ['Review the generated summary'],
           suggestedReplies: [],

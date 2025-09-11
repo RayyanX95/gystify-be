@@ -37,6 +37,4 @@ export class User {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-  // Previously had relation to EmailMessage; removed because emails are not persisted.
 }

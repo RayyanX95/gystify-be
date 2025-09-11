@@ -10,7 +10,7 @@ import { EmailModule } from './email/email.module';
 import { AiSummaryModule } from './ai-summary/ai-summary.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { SummaryModule } from './summary/summary.module';
-import { User, EmailMessage, DailySummary } from './entities';
+import { User, DailySummary } from './entities';
 
 @Module({
   imports: [
@@ -27,7 +27,7 @@ import { User, EmailMessage, DailySummary } from './entities';
         username: configService.get<string>('DATABASE_USERNAME'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [User, EmailMessage, DailySummary],
+        entities: [User, DailySummary],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),

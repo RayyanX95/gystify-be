@@ -1,8 +1,10 @@
+import { GmailMessageDto } from 'src/dto/email.dto';
+
 export interface EmailSummary {
-  subject: string;
-  sender: string;
-  summary: string;
-  isImportant: boolean;
+  subject: GmailMessageDto['subject'];
+  sender: GmailMessageDto['sender'];
+  summary: GmailMessageDto['summary'];
+  isImportant: GmailMessageDto['isImportant'];
 }
 
 export const summaryPrompt = (emailSummaries: EmailSummary[]) => `

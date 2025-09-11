@@ -5,11 +5,12 @@ import {
   IsOptional,
   IsNumber,
   IsDate,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-export class CreateEmailMessageDto {
+export class GmailMessageDto {
   @ApiProperty()
   @IsString()
   gmailId: string;
@@ -65,6 +66,69 @@ export class CreateEmailMessageDto {
   @IsOptional()
   @IsString()
   summary?: string;
+}
+
+export class SummaryEmailDto {
+  @ApiProperty()
+  @IsString()
+  gmailId: string;
+
+  @ApiProperty()
+  @IsString()
+  summaryDate: string;
+
+  @ApiProperty()
+  @IsNumber()
+  totalEmails: number;
+
+  @ApiProperty()
+  @IsString()
+  summary: string;
+
+  @ApiProperty()
+  @IsString()
+  keyInsights: string;
+
+  @ApiProperty()
+  @IsDate()
+  @Type(() => Date)
+  createdAt: Date;
+
+  @ApiProperty()
+  @IsDate()
+  @Type(() => Date)
+  updatedAt: Date;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isImportant?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  priorityScore?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Type(() => String)
+  topSenders: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Type(() => String)
+  actionItems: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Type(() => String)
+  notes: string[];
 }
 
 export class EmailSummaryResponseDto {

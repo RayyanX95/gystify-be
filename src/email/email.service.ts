@@ -1,13 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { gmail_v1, google } from 'googleapis';
 import {
   extractEmailBody,
   htmlToPlainText,
   normalizeSnippet,
 } from './email.utils';
-import { EmailMessage, User } from '../entities';
+import { User } from '../entities';
+import { GmailMessageDto } from 'src/dto/email.dto';
 
 @Injectable()
 /**
@@ -17,10 +16,7 @@ import { EmailMessage, User } from '../entities';
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  constructor(
-    @InjectRepository(EmailMessage)
-    private emailRepository: Repository<EmailMessage>,
-  ) {}
+  constructor() {}
 
   /**
    * Parse Gmail message metadata to extract importance signals.
@@ -55,13 +51,13 @@ export class EmailService {
 
   /**
    * Fetch the latest messages for a user from Gmail WITHOUT persisting to DB.
-   * Returns EmailMessage instances that are NOT saved.
+   * Returns GmailMessageDto instances that are NOT saved.
    * Useful for transient processing (summaries) where storing full bodies is undesirable.
    */
   async fetchGmailMessagesNoPersist(
     user: User,
     maxResults = 5,
-  ): Promise<EmailMessage[]> {
+  ): Promise<GmailMessageDto[]> {
     if (!user.gmailRefreshToken) {
       this.logger.warn(`User ${user.id} has no Gmail refresh token`);
       return [];
@@ -83,7 +79,7 @@ export class EmailService {
       });
 
       const messages = response.data.messages || [];
-      const emailMessages: EmailMessage[] = [];
+      const emailMessages: GmailMessageDto[] = [];
 
       for (const message of messages) {
         if (!message.id) continue;
@@ -114,7 +110,7 @@ export class EmailService {
           let body = extractEmailBody(msg.payload);
           body = normalizeSnippet(htmlToPlainText(body), 1000);
 
-          const emailMsg = new EmailMessage();
+          const emailMsg = new GmailMessageDto();
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore - assigning fields for transient object
           emailMsg.gmailId = message.id;
@@ -161,14 +157,14 @@ export class EmailService {
 
   /**
    * Fetch messages for a user from Gmail WITHOUT persisting, filtered by receivedAt between start and end.
-   * Returns EmailMessage instances that are NOT saved.
+   * Returns GmailMessageDto instances that are NOT saved.
    */
   async fetchGmailMessagesNoPersistBetween(
     user: User,
     start: Date,
     end: Date,
     maxResults = 50,
-  ): Promise<EmailMessage[]> {
+  ): Promise<GmailMessageDto[]> {
     if (!user.gmailRefreshToken) {
       this.logger.warn(`User ${user.id} has no Gmail refresh token`);
       return [];
@@ -190,7 +186,7 @@ export class EmailService {
       });
 
       const messages = response.data.messages || [];
-      const emailMessages: EmailMessage[] = [];
+      const emailMessages: GmailMessageDto[] = [];
 
       for (const message of messages) {
         if (!message.id) continue;
@@ -224,7 +220,7 @@ export class EmailService {
           let body = extractEmailBody(msg.payload);
           body = normalizeSnippet(htmlToPlainText(body), 1000);
 
-          const emailMsg = new EmailMessage();
+          const emailMsg = new GmailMessageDto();
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore - transient object
           emailMsg.gmailId = message.id;
@@ -266,25 +262,5 @@ export class EmailService {
       );
       return [];
     }
-  }
-
-  /**
-   * Update an email's AI-generated summary and optional priority score.
-   * Also sets `isImportant` when priorityScore exceeds the threshold.
-   *
-   * @param emailId - id of the EmailMessage entity to update
-   * @param summary - generated summary text
-   * @param priorityScore - optional numeric importance score (0..1)
-   */
-  async updateEmailSummary(
-    emailId: string,
-    summary: string,
-    priorityScore?: number,
-  ): Promise<void> {
-    await this.emailRepository.update(emailId, {
-      summary,
-      priorityScore,
-      isImportant: priorityScore ? priorityScore > 0.7 : undefined,
-    });
   }
 }
