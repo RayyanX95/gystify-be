@@ -1,4 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmailService } from '../email/email.service';
@@ -23,49 +29,81 @@ export class SummaryService {
    * Uses upsert logic - updates existing summary for the date or creates new one.
    */
   async generateAndPersist(userId: string): Promise<DailySummary> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of day for consistent comparison
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of day for consistent comparison
 
-    // Check if summary already exists for today
-    const existingSummary = await this.dailySummaryRepository.findOne({
-      where: {
-        user: { id: userId },
-        summaryDate: today,
-      },
-    });
-
-    // fetch emails for the user from Gmail directly (no DB persistence)
-    const user = await this.userService.findById(userId);
-    const emails = await this.emailService.fetchGmailMessagesNoPersist(
-      user,
-      10,
-    );
-
-    const aiResult = await this.aiSummaryService.generateDailySummary(emails);
-
-    if (existingSummary) {
-      // Update existing summary
-      this.dailySummaryRepository.merge(existingSummary, {
-        totalEmails: aiResult.totalEmails,
-        importantEmails: aiResult.importantEmails,
-        summary: aiResult.summary,
-        keyInsights: aiResult.keyInsights,
-        aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
-      });
-      return this.dailySummaryRepository.save(existingSummary);
-    } else {
-      // Create new summary
-      const daily = this.dailySummaryRepository.create({
-        summaryDate: today,
-        totalEmails: aiResult.totalEmails,
-        importantEmails: aiResult.importantEmails,
-        summary: aiResult.summary,
-        keyInsights: aiResult.keyInsights,
-        aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
-        user: { id: userId },
+      // Check if summary already exists for today
+      const existingSummary = await this.dailySummaryRepository.findOne({
+        where: {
+          user: { id: userId },
+          summaryDate: today,
+        },
       });
 
-      return this.dailySummaryRepository.save(daily);
+      // fetch emails for the user from Gmail directly (no DB persistence)
+      const user = await this.userService.findById(userId);
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
+      const emails = await this.emailService.fetchGmailMessagesNoPersist(
+        user,
+        10,
+      );
+
+      const aiResult = await this.aiSummaryService.generateDailySummary(emails);
+
+      if (existingSummary) {
+        // Update existing summary
+        this.dailySummaryRepository.merge(existingSummary, {
+          totalEmails: aiResult.totalEmails,
+          importantEmails: aiResult.importantEmails,
+          summary: aiResult.summary,
+          keyInsights: aiResult.keyInsights,
+          aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
+        });
+        return this.dailySummaryRepository.save(existingSummary);
+      } else {
+        // Create new summary
+        const daily = this.dailySummaryRepository.create({
+          summaryDate: today,
+          totalEmails: aiResult.totalEmails,
+          importantEmails: aiResult.importantEmails,
+          summary: aiResult.summary,
+          keyInsights: aiResult.keyInsights,
+          aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
+          user: { id: userId },
+        });
+
+        return this.dailySummaryRepository.save(daily);
+      }
+    } catch (error) {
+      this.logger.error(
+        'Error generating and persisting daily summary:',
+        error,
+      );
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        // Re-throw HTTP exceptions as-is
+        throw error;
+      }
+
+      // Convert AI service errors or other errors to proper HTTP errors
+      if (
+        error instanceof Error &&
+        error.message.includes('Failed to generate daily summary')
+      ) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      // Generic fallback for unexpected errors
+      throw new InternalServerErrorException(
+        'Failed to generate daily summary due to an unexpected error',
+      );
     }
   }
 
@@ -74,48 +112,73 @@ export class SummaryService {
     summaryId: string,
     contextSummary?: string,
   ): Promise<Record<string, any>> {
-    // Fetch the daily summary
-    const summary = await this.dailySummaryRepository.findOne({
-      where: { id: summaryId },
-      relations: ['user'],
-    });
+    try {
+      // Fetch the daily summary
+      const summary = await this.dailySummaryRepository.findOne({
+        where: { id: summaryId },
+        relations: ['user'],
+      });
 
-    if (!summary) {
-      throw new Error(`Daily summary with ID ${summaryId} not found`);
-    }
+      if (!summary) {
+        throw new NotFoundException(
+          `Daily summary with ID ${summaryId} not found`,
+        );
+      }
 
-    // Get all emails for that user on the summary date
-    const startOfDay = new Date(summary.summaryDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setDate(endOfDay.getDate() + 1);
+      // Fetch emails from provider for the summary date (no DB persistence)
+      const user = summary.user;
+      const emails = await this.emailService.fetchGmailMessagesNoPersist(
+        user,
+        50,
+      );
 
-    // Fetch emails from provider for the summary date (no DB persistence)
-    const user = summary.user;
-    const emails = await this.emailService.fetchGmailMessagesNoPersistBetween(
-      user,
-      startOfDay,
-      endOfDay,
-      50,
-    );
+      if (emails.length === 0) {
+        throw new BadRequestException(
+          `No emails found for summary date ${new Date(summary.summaryDate).toISOString()}`,
+        );
+      }
 
-    if (emails.length === 0) {
-      throw new Error(
-        `No emails found for summary date ${summary.summaryDate.toISOString()}`,
+      return await this.aiSummaryService.generateDetailedSummary(
+        emails,
+        contextSummary,
+      );
+    } catch (error) {
+      this.logger.error('Error expanding summary by ID:', error);
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        // Re-throw HTTP exceptions as-is
+        throw error;
+      }
+
+      // Convert AI service errors or other errors to proper HTTP errors
+      if (
+        error instanceof Error &&
+        error.message.includes('Failed to generate detailed summary')
+      ) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      // Generic fallback for unexpected errors
+      throw new InternalServerErrorException(
+        'Failed to expand summary due to an unexpected error',
       );
     }
-
-    return this.aiSummaryService.generateDetailedSummary(
-      emails,
-      contextSummary,
-    );
   }
 
   async getDailySummary(userId: string, limit: number) {
-    return this.dailySummaryRepository.find({
-      where: { user: { id: userId } },
-      order: { summaryDate: 'DESC' },
-      take: limit || 10,
-    });
+    try {
+      return await this.dailySummaryRepository.find({
+        where: { user: { id: userId } },
+        order: { summaryDate: 'DESC' },
+        take: limit || 10,
+      });
+    } catch (error) {
+      this.logger.error('Error fetching daily summaries:', error);
+
+      throw new InternalServerErrorException('Failed to fetch daily summaries');
+    }
   }
 }

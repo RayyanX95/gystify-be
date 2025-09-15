@@ -41,7 +41,7 @@ export interface DailySummaryResult {
 @Injectable()
 /**
  * AiSummaryService - wraps OpenAI calls to produce structured summaries.
- * Methods provide safe fallbacks and limit token usage by truncating inputs.
+ * Methods throw proper errors for the frontend and limit token usage by truncating inputs.
  */
 export class AiSummaryService {
   private readonly logger = new Logger(AiSummaryService.name);
@@ -58,7 +58,7 @@ export class AiSummaryService {
 
   /**
    * Produce an aggregated daily summary from a list of emails.
-   * Returns a small structured result and provides a fallback when the AI call fails.
+   * Returns a structured result or throws proper errors for the frontend.
    */
   async generateDailySummary(
     emails: GmailMessageDto[],
@@ -104,60 +104,51 @@ export class AiSummaryService {
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new Error('No response from OpenAI');
+        throw new Error('OpenAI returned empty response');
       }
 
-      const aiResult = JSON.parse(content) as {
-        summary: string;
-        keyInsights: string;
-        topSenders: string[];
-        actionItems: string[];
-      };
+      try {
+        const aiResult = JSON.parse(content) as {
+          summary: string;
+          keyInsights: string;
+          topSenders: string[];
+          actionItems: string[];
+        };
 
-      console.log('Summary -- aiResult :>> ', aiResult);
+        console.log('Summary -- aiResult :>> ', aiResult);
 
-      return {
-        summary: aiResult.summary,
-        totalEmails: emails.length,
-        importantEmails: emails.filter((e) => e.isImportant).length,
-        keyInsights: aiResult.keyInsights,
-        topSenders: aiResult.topSenders,
-        actionItems: aiResult.actionItems,
-        aiProcessingTimeMs,
-      };
+        return {
+          summary: aiResult.summary,
+          totalEmails: emails.length,
+          importantEmails: emails.filter((e) => e.isImportant).length,
+          keyInsights: aiResult.keyInsights,
+          topSenders: aiResult.topSenders,
+          actionItems: aiResult.actionItems,
+          aiProcessingTimeMs,
+        };
+      } catch (parseError) {
+        this.logger.error('Failed to parse daily summary as JSON:', parseError);
+        this.logger.error('AI Response content:', content);
+        throw new Error('AI response format is invalid - unable to parse JSON');
+      }
     } catch (error) {
       this.logger.error('Error generating daily summary:', error);
-      // Fallback summary
-      const senderCounts = emails.reduce(
-        (acc, email) => {
-          acc[email.sender] = (acc[email.sender] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
 
-      const topSenders = Object.entries(senderCounts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
-        .map(([sender]) => sender);
-
-      return {
-        summary: `Received ${emails.length} emails today from various senders.`,
-        totalEmails: emails.length,
-        importantEmails: emails.filter((e) => e.isImportant).length,
-        keyInsights: `Most active senders: ${topSenders.slice(0, 3).join(', ')}`,
-        topSenders,
-        actionItems: ['Review important emails', 'Respond to pending messages'],
-        aiProcessingTimeMs: 0, // No AI processing for fallback
-      };
+      // Re-throw the error with proper context for the frontend
+      if (error instanceof Error) {
+        throw new Error(`Failed to generate daily summary: ${error.message}`);
+      } else {
+        throw new Error(
+          'Failed to generate daily summary due to unknown error',
+        );
+      }
     }
   }
 
   /**
    * Generate a detailed, actionable report from multiple emails.
    * Limits the number and size of emails sent to the model and accepts an optional
-   * textual `context` to guide the analysis. Returns JSON when possible, or a
-   * structured fallback object on error.
+   * textual `context` to guide the analysis. Returns parsed JSON or throws proper errors.
    */
   async generateDetailedSummary(
     emails: GmailMessageDto[],
@@ -198,7 +189,7 @@ export class AiSummaryService {
       const aiResult = response.choices[0]?.message?.content;
       if (!aiResult) {
         this.logger.warn('No content from OpenAI detailed summary');
-        throw new Error('No response content from OpenAI');
+        throw new Error('OpenAI returned empty response');
       }
       console.log('DeailSummary -- aiResult :>> ', aiResult);
 
@@ -206,36 +197,23 @@ export class AiSummaryService {
         const parsed = JSON.parse(aiResult) as Record<string, any>;
         return parsed;
       } catch (parseError) {
-        this.logger.warn(
-          'Failed to parse detailed summary as JSON:',
-          parseError,
-        );
-        // Return raw content as fallback
-        return {
-          raw: aiResult,
-          highlights: [`Generated summary for ${emails.length} emails`],
-          actionItems: ['Review the generated summary'],
-          suggestedReplies: [],
-          deadlines: [],
-          mainTopics: [
-            `Email analysis from ${emails[0]?.sender || 'various senders'}`,
-          ],
-        };
+        this.logger.error('Failed to parse AI response as JSON:', parseError);
+        this.logger.error('AI Response content:', aiResult);
+        throw new Error('AI response format is invalid - unable to parse JSON');
       }
     } catch (error) {
       this.logger.error('Error generating detailed summary:', error);
-      // Fallback response
-      return {
-        error: `Failed to generate detailed summary: ${error instanceof Error ? error.message : String(error)}`,
-        highlights: [
-          `Analysis of ${emails.length} emails from ${new Date().toLocaleDateString()}`,
-        ],
-        actionItems: ['Review emails manually', 'Check for urgent items'],
-        suggestedReplies: [],
-        deadlines: [],
-        mainTopics: emails.map((e) => e.subject).slice(0, 5),
-        fallback: true,
-      };
+
+      // Re-throw the error with proper context for the frontend
+      if (error instanceof Error) {
+        throw new Error(
+          `Failed to generate detailed summary: ${error.message}`,
+        );
+      } else {
+        throw new Error(
+          'Failed to generate detailed summary due to unknown error',
+        );
+      }
     }
   }
 }
