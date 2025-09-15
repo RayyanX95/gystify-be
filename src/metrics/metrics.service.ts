@@ -15,24 +15,26 @@ export class MetricsService {
     private readonly summaryRepo: Repository<DailySummary>,
   ) {}
 
-  async getMetrics(): Promise<MetricsDto> {
-    // Sum total_emails across daily summaries to get the true number of emails processed
+  async getMetrics(userId: string): Promise<MetricsDto> {
+    // Sum total_emails across daily summaries for this specific user
     // This avoids counting rows when one row can represent multiple emails for a day
     const sumRaw: { sum: string | null } | undefined = await this.summaryRepo
       .createQueryBuilder('s')
       .select('SUM(s.total_emails)', 'sum')
+      .where('s.user_id = :userId', { userId })
       .getRawOne();
 
     const emailsSummarized = sumRaw && sumRaw.sum ? Number(sumRaw.sum) : 0;
 
-    // Compute average AI processing time per summary using aiProcessingTimeMs stored on DailySummary.
+    // Compute average AI processing time per summary for this user using aiProcessingTimeMs stored on DailySummary.
     // DailySummary.aiProcessingTimeMs is the total AI time spent generating that daily summary (ms)
     // We want average processing time per summary, which reflects what users experience when waiting for their summary.
-    // SQL: AVG(ai_processing_time_ms)
+    // SQL: AVG(ai_processing_time_ms) WHERE user_id = userId
     const avgAiPerSummaryRaw: { avgPerSummary: string | null } | undefined =
       await this.summaryRepo
         .createQueryBuilder('s')
         .select('AVG(s.ai_processing_time_ms)', 'avgPerSummary')
+        .where('s.user_id = :userId', { userId })
         .getRawOne();
 
     const avgAiPerSummaryMs =

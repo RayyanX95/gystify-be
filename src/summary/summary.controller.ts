@@ -16,7 +16,6 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
-// InjectRepository removed; we inject the SummaryService directly
 import type { Request } from 'express';
 import { DailySummary, User } from '../entities';
 import { SummaryService } from './summary.service';
