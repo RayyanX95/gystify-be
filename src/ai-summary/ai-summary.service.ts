@@ -55,63 +55,6 @@ export class AiSummaryService {
   }
 
   /**
-   * Summarize a single email into a compact JSON structure.
-   * Truncates long email bodies and falls back to a simple summary on errors.
-   */
-  async summarizeEmail(email: GmailMessageDto): Promise<EmailSummaryResult> {
-    if (!this.openai) {
-      throw new Error('OpenAI not configured');
-    }
-
-    try {
-      const prompt = `
-        Analyze this email and provide a structured summary:
-        
-        Subject: ${email.subject}
-        From: ${email.sender} (${email.senderEmail})
-        Content: ${(email.body ?? '').substring(0, 2000)}
-        
-        Please provide:
-        1. A concise summary (2-3 sentences)
-        2. Priority score (0-1, where 1 is most urgent/important)
-        3. Key insights (important points or information)
-        4. Action items (if any tasks or responses are needed)
-        
-        Respond in JSON format:
-        {
-          "summary": "string",
-          "priorityScore": number,
-          "keyInsights": ["string"],
-          "actionItems": ["string"]
-        }
-      `;
-
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 500,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('No response from OpenAI');
-      }
-
-      return JSON.parse(content) as EmailSummaryResult;
-    } catch (error) {
-      this.logger.error('Error summarizing email:', error);
-      // Fallback summary
-      return {
-        summary: `Email from ${email.sender} about: ${email.subject}`,
-        priorityScore: 0.5,
-        keyInsights: [`Email received from ${email.senderEmail}`],
-        actionItems: [],
-      };
-    }
-  }
-
-  /**
    * Produce an aggregated daily summary from a list of emails.
    * Returns a small structured result and provides a fallback when the AI call fails.
    */

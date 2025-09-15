@@ -22,11 +22,13 @@ export const summaryPrompt = (emailSummaries: EmailSummary[]) => `
         Respond in JSON format:
         {
           "summary": "string",
-          "keyInsights": "string",
+          "keyInsights": "1. First insight here. 2. Second insight here. 3. Third insight here.",
           "topSenders": ["string"],
           "actionItems": ["string"],
           "notes": "string"
         }
+        
+        Note: Format keyInsights as a numbered list within a single string, like: "1. Job alerts for software engineering and frontend development roles were prominent. 2. Substack updates and social media notifications were also received. 3. Promotional emails from Jumia EG and Design.com were included."
 `;
 
 export interface DetailedSummary extends EmailSummary {
@@ -54,7 +56,7 @@ export const detailedSummaryPrompt = (
         Respond in JSON format:
         {
           "rawSummary": "string",
-          "highlights": ["string"],
+          "highlights": "1. First highlight here. 2. Second highlight here. 3. Third highlight here.",
           "actionItems": ["string"],
           "suggestedReplies": ["string"],
           "deadlines": ["string"],
@@ -63,4 +65,6 @@ export const detailedSummaryPrompt = (
           "categories": {"category_name": ["email subjects"]},
           "notes": "string"
         }
+        
+        Note: Format highlights as a numbered list within a single string, similar to keyInsights format.
       `;

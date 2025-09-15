@@ -60,8 +60,6 @@ export class SummaryService {
         importantEmails: aiResult.importantEmails,
         summary: aiResult.summary,
         keyInsights: aiResult.keyInsights,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore: simplified assign for POC
         user: { id: userId },
       });
 
