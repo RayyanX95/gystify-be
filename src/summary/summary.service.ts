@@ -50,6 +50,7 @@ export class SummaryService {
         importantEmails: aiResult.importantEmails,
         summary: aiResult.summary,
         keyInsights: aiResult.keyInsights,
+        aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
       });
       return this.dailySummaryRepository.save(existingSummary);
     } else {
@@ -60,6 +61,7 @@ export class SummaryService {
         importantEmails: aiResult.importantEmails,
         summary: aiResult.summary,
         keyInsights: aiResult.keyInsights,
+        aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
         user: { id: userId },
       });
 

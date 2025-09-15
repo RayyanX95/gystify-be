@@ -26,6 +26,7 @@ export interface EmailSummaryResult {
  * keyInsights: short list/string of insights
  * topSenders: frequent senders for the day
  * actionItems: suggested follow-ups for the user
+ * aiProcessingTimeMs: time spent on AI processing (for metrics)
  */
 export interface DailySummaryResult {
   summary: string;
@@ -34,6 +35,7 @@ export interface DailySummaryResult {
   keyInsights: string;
   topSenders: string[];
   actionItems: string[];
+  aiProcessingTimeMs: number;
 }
 
 @Injectable()
@@ -73,6 +75,7 @@ export class AiSummaryService {
         keyInsights: 'No email activity today.',
         topSenders: [],
         actionItems: [],
+        aiProcessingTimeMs: 0,
       };
     }
 
@@ -86,12 +89,18 @@ export class AiSummaryService {
 
       const prompt = summaryPrompt(emailSummaries);
 
+      // Measure AI processing time - start timing right before the OpenAI call
+      const aiStartTime = Date.now();
+
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 800,
       });
+
+      // End timing immediately after the OpenAI call completes
+      const aiProcessingTimeMs = Date.now() - aiStartTime;
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
@@ -114,6 +123,7 @@ export class AiSummaryService {
         keyInsights: aiResult.keyInsights,
         topSenders: aiResult.topSenders,
         actionItems: aiResult.actionItems,
+        aiProcessingTimeMs,
       };
     } catch (error) {
       this.logger.error('Error generating daily summary:', error);
@@ -138,6 +148,7 @@ export class AiSummaryService {
         keyInsights: `Most active senders: ${topSenders.slice(0, 3).join(', ')}`,
         topSenders,
         actionItems: ['Review important emails', 'Respond to pending messages'],
+        aiProcessingTimeMs: 0, // No AI processing for fallback
       };
     }
   }

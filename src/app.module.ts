@@ -11,6 +11,7 @@ import { AiSummaryModule } from './ai-summary/ai-summary.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { SummaryModule } from './summary/summary.module';
 import { User, DailySummary } from './entities';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { User, DailySummary } from './entities';
     AiSummaryModule,
     SchedulerModule,
     SummaryModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -22,6 +22,9 @@ export class DailySummary {
   @Column({ name: 'total_emails' })
   totalEmails: number;
 
+  @Column({ name: 'ai_processing_time_ms', type: 'float', nullable: true })
+  aiProcessingTimeMs?: number;
+
   @Column({ name: 'important_emails' })
   importantEmails: number;
 
