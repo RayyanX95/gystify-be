@@ -34,6 +34,25 @@ export class DailySummary {
   @Column({ name: 'key_insights', type: 'text', nullable: true })
   keyInsights?: string;
 
+  // Essential aggregated metrics for enhanced calculations
+  @Column({ name: 'total_size_bytes', type: 'bigint', nullable: true })
+  totalSizeBytes?: number;
+
+  @Column({
+    name: 'avg_priority_score',
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    nullable: true,
+  })
+  avgPriorityScore?: number;
+
+  @Column({ name: 'high_priority_emails', type: 'int', nullable: true })
+  highPriorityEmails?: number;
+
+  @Column({ name: 'promotional_emails', type: 'int', nullable: true })
+  promotionalEmails?: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

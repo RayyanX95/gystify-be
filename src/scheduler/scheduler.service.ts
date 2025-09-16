@@ -108,7 +108,7 @@ export class SchedulerService {
     for (const user of users) {
       try {
         // // Get unsummarized emails
-        // const emails = await this.emailService.findByUserId(user.id, 50);
+        // const emails = await this.emailService.findByUserId(user.id, 10);
         // const unsummarizedEmails = emails.filter((email) => !email.summary);
         // for (const email of unsummarizedEmails) {
         //   try {

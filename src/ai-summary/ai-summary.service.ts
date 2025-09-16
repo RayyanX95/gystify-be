@@ -19,13 +19,15 @@ export interface EmailSummaryResult {
 }
 
 /**
- * Structured result for a daily summary aggregation.
- * summary: overall text summary for the day
+ * Enhanced structured result for a daily summary aggregation with security and category insights.
+ * summary: overall text summary prioritizing authenticated, high-priority emails
  * totalEmails: number of emails processed
  * importantEmails: count of emails marked important
- * keyInsights: short list/string of insights
- * topSenders: frequent senders for the day
- * actionItems: suggested follow-ups for the user
+ * keyInsights: categorized insights with security and trust context
+ * topSenders: frequent senders with trust indicators
+ * actionItems: prioritized follow-ups focusing on authenticated emails
+ * securityInsights: security assessment of email authentication status
+ * categoryBreakdown: distribution of emails by category (PROMOTIONS, PERSONAL, etc.)
  * aiProcessingTimeMs: time spent on AI processing (for metrics)
  */
 export interface DailySummaryResult {
@@ -35,6 +37,8 @@ export interface DailySummaryResult {
   keyInsights: string;
   topSenders: string[];
   actionItems: string[];
+  securityInsights?: string;
+  categoryBreakdown?: Record<string, number>;
   aiProcessingTimeMs: number;
 }
 
@@ -83,8 +87,19 @@ export class AiSummaryService {
       const emailSummaries = emails.map((email) => ({
         subject: email.subject,
         sender: email.sender,
-        summary: email.summary || `Email about: ${email.subject}`,
-        isImportant: email.isImportant,
+        senderEmail: email.senderEmail,
+        summary:
+          email.summary || email.snippet || `Email about: ${email.subject}`,
+        body: email.body?.substring(0, 500) || '', // First 500 chars for context
+        category: email.category || 'UNKNOWN',
+        isImportant: email.isImportant || false,
+        isStarred: email.isStarred || false,
+        priorityScore: email.priorityScore || 0.5,
+        isAuthenticated: email.isAuthenticated || false,
+        isFromTrustedDomain: email.isFromTrustedDomain || false,
+        hasUnsubscribeOption: email.hasUnsubscribeOption || false,
+        sizeEstimate: email.sizeEstimate || 0,
+        receivedAt: email.receivedAt,
       }));
 
       const prompt = summaryPrompt(emailSummaries);
@@ -93,7 +108,7 @@ export class AiSummaryService {
       const aiStartTime = Date.now();
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-mini-2025-04-14',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 800,
@@ -113,6 +128,9 @@ export class AiSummaryService {
           keyInsights: string;
           topSenders: string[];
           actionItems: string[];
+          securityInsights?: string;
+          categoryBreakdown?: Record<string, number>;
+          notes?: string;
         };
 
         console.log('Summary -- aiResult :>> ', aiResult);
@@ -124,6 +142,8 @@ export class AiSummaryService {
           keyInsights: aiResult.keyInsights,
           topSenders: aiResult.topSenders,
           actionItems: aiResult.actionItems,
+          securityInsights: aiResult.securityInsights,
+          categoryBreakdown: aiResult.categoryBreakdown,
           aiProcessingTimeMs,
         };
       } catch (parseError) {
@@ -165,14 +185,23 @@ export class AiSummaryService {
     }
 
     try {
-      // Truncate emails to prevent token limit issues
+      // Truncate emails to prevent token limit issues and include rich metadata
       const emailData = emails.slice(0, 20).map((email) => ({
-        summary: email.summary || `Email about: ${email.subject}`,
+        summary:
+          email.summary || email.snippet || `Email about: ${email.subject}`,
         subject: email.subject,
         sender: email.sender,
+        senderEmail: email.senderEmail,
         body: email.body ? email.body.substring(0, 500) : '',
+        category: email.category || 'UNKNOWN',
         receivedAt: email.receivedAt,
-        isImportant: email.isImportant,
+        isImportant: email.isImportant || false,
+        isStarred: email.isStarred || false,
+        priorityScore: email.priorityScore || 0.5,
+        isAuthenticated: email.isAuthenticated || false,
+        isFromTrustedDomain: email.isFromTrustedDomain || false,
+        hasUnsubscribeOption: email.hasUnsubscribeOption || false,
+        sizeEstimate: email.sizeEstimate || 0,
       }));
 
       const contextInstruction = context ? `Context: ${context}\n\n` : '';
@@ -180,7 +209,7 @@ export class AiSummaryService {
       const prompt = detailedSummaryPrompt(emailData, contextInstruction);
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-mini-2025-04-14',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 1200,
@@ -191,7 +220,7 @@ export class AiSummaryService {
         this.logger.warn('No content from OpenAI detailed summary');
         throw new Error('OpenAI returned empty response');
       }
-      console.log('DeailSummary -- aiResult :>> ', aiResult);
+      console.log('DetailedSummary -- aiResult :>> ', aiResult);
 
       try {
         const parsed = JSON.parse(aiResult) as Record<string, any>;

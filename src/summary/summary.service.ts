@@ -11,8 +11,18 @@ import { EmailService } from '../email/email.service';
 import { UserService } from '../user/user.service';
 import { AiSummaryService } from '../ai-summary/ai-summary.service';
 import { DailySummary } from '../entities/daily-summary.entity';
+// import {
+//   getMockDailySummary,
+//   getMockDetailedSummary,
+// } from './summary.utils';
+import { GmailMessageDto } from '../dto/email.dto';
 
 @Injectable()
+/**
+ * SummaryService handles daily summary generation and retrieval.
+ * Currently using mock data to conserve OpenAI API quota during development.
+ * TODO: Re-enable AI functionality when ready for production.
+ */
 export class SummaryService {
   private readonly logger = new Logger(SummaryService.name);
 
@@ -49,10 +59,15 @@ export class SummaryService {
 
       const emails = await this.emailService.fetchGmailMessagesNoPersist(
         user,
-        10,
+        3,
       );
 
+      // TODO: Temporarily using mock data to save OpenAI API quota
+      // const aiResult = getMockDailySummary(emails);
       const aiResult = await this.aiSummaryService.generateDailySummary(emails);
+
+      // Calculate enhanced metrics from email metadata
+      const enhancedMetrics = this.calculateEmailMetrics(emails);
 
       if (existingSummary) {
         // Update existing summary
@@ -62,6 +77,7 @@ export class SummaryService {
           summary: aiResult.summary,
           keyInsights: aiResult.keyInsights,
           aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
+          ...enhancedMetrics,
         });
         return this.dailySummaryRepository.save(existingSummary);
       } else {
@@ -74,6 +90,7 @@ export class SummaryService {
           keyInsights: aiResult.keyInsights,
           aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
           user: { id: userId },
+          ...enhancedMetrics,
         });
 
         return this.dailySummaryRepository.save(daily);
@@ -129,7 +146,7 @@ export class SummaryService {
       const user = summary.user;
       const emails = await this.emailService.fetchGmailMessagesNoPersist(
         user,
-        50,
+        10,
       );
 
       if (emails.length === 0) {
@@ -138,6 +155,8 @@ export class SummaryService {
         );
       }
 
+      // TODO: Temporarily using mock data to save OpenAI API quota
+      // return getMockDetailedSummary(emails, contextSummary);
       return await this.aiSummaryService.generateDetailedSummary(
         emails,
         contextSummary,
@@ -180,5 +199,36 @@ export class SummaryService {
 
       throw new InternalServerErrorException('Failed to fetch daily summaries');
     }
+  }
+
+  /**
+   * Calculate essential metrics from email metadata for enhanced time/efficiency calculations
+   */
+  private calculateEmailMetrics(emails: GmailMessageDto[]) {
+    // Calculate total size for processing time correlation
+    const totalSize = emails.reduce((sum, e) => sum + (e.sizeEstimate || 0), 0);
+
+    // Calculate average priority for importance-weighted time savings
+    const priorityScores = emails.map((e) => e.priorityScore || 0.5);
+    const avgPriority =
+      priorityScores.reduce((sum, score) => sum + score, 0) /
+      Math.max(priorityScores.length, 1);
+
+    // Count high-priority emails (these save more time when summarized)
+    const highPriorityCount = emails.filter(
+      (e) => (e.priorityScore || 0.5) > 0.6,
+    ).length;
+
+    // Count promotional emails (these save less time as they're often skipped)
+    const promotionalCount = emails.filter(
+      (e) => e.category === 'PROMOTIONS',
+    ).length;
+
+    return {
+      totalSizeBytes: totalSize,
+      avgPriorityScore: Math.round(avgPriority * 100) / 100,
+      highPriorityEmails: highPriorityCount,
+      promotionalEmails: promotionalCount,
+    };
   }
 }

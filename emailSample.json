@@ -1,0 +1,134 @@
+{
+  "id": "1992f6168036e797",
+  "threadId": "1992f6168036e797",
+  "labelIds": ["CATEGORY_PROMOTIONS", "UNREAD", "INBOX"],
+  "snippet": "You&#39;ve told us what&#39;s been holding vibe code tools back: endless error loops Hey builders, The world&#39;s best coding agents are coming to Bolt. You&#39;ve told us what&#39;s been holding vibe",
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      { "name": "Delivered-To", "value": "ibrahim.alrayyan.iknow@gmail.com" },
+      {
+        "name": "Received",
+        "value": "by 2002:a05:7022:322:b0:c7:1756:247a with SMTP id 34csp1911545dld;        Tue, 9 Sep 2025 09:48:57 -0700 (PDT)"
+      },
+      {
+        "name": "X-Google-Smtp-Source",
+        "value": "AGHT+IGRqOiA920lKVD1wbRE7ORS+Z5EmkFCXge8mb04Ghqdr/8KIRUl6V1ynLVRzhNyIZtSzXKK"
+      },
+      {
+        "name": "X-Received",
+        "value": "by 2002:a05:622a:18a3:b0:4b5:edd3:dde4 with SMTP id d75a77b69052e-4b5f853e5c4mr111601831cf.43.1757436536905;        Tue, 09 Sep 2025 09:48:56 -0700 (PDT)"
+      },
+      {
+        "name": "ARC-Seal",
+        "value": "i=1; a=rsa-sha256; t=1757436536; cv=none;        d=google.com; s=arc-20240605;        b=ELgv/9eHax1f+zLltxEAyIEh7a3OnkGvjUelbEHbu3wFvak5Zs3kFiYdChBo9LJO/Z         LTVr4KSrZpqBH3x5xiJoyziua9j+WCPUrwY2FdhsbxYjLbAsnup1VTEyJiyOvmiNbiA1         3AkijcfaPWOXOdcamPGA/gdMIbcx5/eNOoToJSScwdGkXAWVTxlA/SjKp0rH9e0MhgQG         FoVTLL8HFjlibKQd59aR0CZVq3OA/3iJFMkVKIuZJ53EUGMOGIX+Kf0Y1EdI9iZ0YONb         zhPSQJdy1O+3MHxKfrvnt8zS9h8mTCYmAiNLiQ2MxIHofJLezXwAvCH4Qb/1iEkrNZii         jmjg=="
+      },
+      {
+        "name": "ARC-Message-Signature",
+        "value": "i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;        h=feedback-id:list-unsubscribe-post:precedence:mime-version:subject         :message-id:to:reply-to:from:date:list-unsubscribe:dkim-signature         :dkim-signature;        bh=EvpSRFIVRgzXSZWrIwLkJXhEgeYu+QBRtkmY9zzuKH0=;        fh=dDrOrE3sbSUOiT5PNzFa4oaJTujuUkPTVprLpLl8SwY=;        b=dlYcGgKrQ2fOHQ9pLQWeTbuyc0cTYj8ko9Cv41b0PrJBD0ivtYfPuDw7rRUKD3qyyM         6Jj0klCrARbvm8HkstcjrRabBHJ4h5Ur8UQCX7HGJwa090bqiFAG5Xfrs+hVBhS/vocU         UEbFfDaGl1TEk0ANJ1nXf83+um5yFBbkVGdH0PqCY+uTgGZIhAkPxfMNO9vm39iq7xyN         bF6icKI/0pfLzoTbBhwMWRooBtSAC96NCM5MjlW9TiApSHUaN0bC+KRxFtcUxjlH49PZ         EA+33FLRsOpLOKyMewde9PPBM7mEAuJkzaKfCHpO3K1F4iFzr2xAu/vmVlb7/lnF9eur         Hmmw==;        dara=google.com"
+      },
+      {
+        "name": "ARC-Authentication-Results",
+        "value": "i=1; mx.google.com;       dkim=pass header.i=@bf54x.hubspotemail.net header.s=hs2 header.b=aLSZr0Pg;       dkim=pass header.i=@stackblitz.com header.s=hs1-45403856 header.b=JvwdW8Rz;       spf=pass (google.com: domain of 1axb4az9eo55blwjdjkfger6l5jabaiu3jswms@bf54x.hubspotemail.net designates 143.244.91.44 as permitted sender) smtp.mailfrom=1axb4az9eo55blwjdjkfger6l5jabaiu3jswms@bf54x.hubspotemail.net;       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=stackblitz.com"
+      },
+      {
+        "name": "Return-Path",
+        "value": "<1axb4az9eo55blwjdjkfger6l5jabaiu3jswms@bf54x.hubspotemail.net>"
+      },
+      {
+        "name": "Received",
+        "value": "from bd77gla.bf54x.hubspotemail.net (bd77gla.bf54x.hubspotemail.net. [143.244.91.44])        by mx.google.com with ESMTPS id af79cd13be357-81b601a01besi77825585a.1146.2025.09.09.09.48.56        for <ibrahim.alrayyan.iknow@gmail.com>        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);        Tue, 09 Sep 2025 09:48:56 -0700 (PDT)"
+      },
+      {
+        "name": "Received-SPF",
+        "value": "pass (google.com: domain of 1axb4az9eo55blwjdjkfger6l5jabaiu3jswms@bf54x.hubspotemail.net designates 143.244.91.44 as permitted sender) client-ip=143.244.91.44;"
+      },
+      {
+        "name": "Authentication-Results",
+        "value": "mx.google.com;       dkim=pass header.i=@bf54x.hubspotemail.net header.s=hs2 header.b=aLSZr0Pg;       dkim=pass header.i=@stackblitz.com header.s=hs1-45403856 header.b=JvwdW8Rz;       spf=pass (google.com: domain of 1axb4az9eo55blwjdjkfger6l5jabaiu3jswms@bf54x.hubspotemail.net designates 143.244.91.44 as permitted sender) smtp.mailfrom=1axb4az9eo55blwjdjkfger6l5jabaiu3jswms@bf54x.hubspotemail.net;       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=stackblitz.com"
+      },
+      {
+        "name": "Received",
+        "value": "by 172.16.157.3 with SMTP id a0b2377bl4ybydulymwz0a7w1k8plupcdprb53z0kv3;        Tue, 9 Sep 2025 16:46:57 GMT"
+      },
+      {
+        "name": "DKIM-Signature",
+        "value": "v=1; s=hs2; d=bf54x.hubspotemail.net;         i=@bf54x.hubspotemail.net;         h=sender:from:from:reply-to:to:to:cc:cc:subject:subject:list-unsubscribe:form-sub:feedback-id:list-unsubscribe-post;         a=rsa-sha256; c=relaxed/relaxed;         bh=EvpSRFIVRgzXSZWrIwLkJXhEgeYu+QBRtkmY9zzuKH0=;         b=aLSZr0PgvZ7DuDtR2r3c4FfYS3E3Cbc8wd+BtDb3SdK5dx1TUemTJqUviggKIL         8yCAAl3O6fZW/OevTAQgZI209RTNcxN4MVuOWBnLtCvEHCMII27hEzvf8QwacV2         6QG2U4i1S02gSkiM4bLzUMPkcaEGKmE0RSvgzi2C1g8EBgc2JnPhPdlKszHyhqb         cyX5y7IuhrXD4gRmUOseqFyqbIttkhBvts+m0NlMQs5wXj+d9aQ9mfP1Uis0Rgf         qxituS4YiyuB06w/Hufjvq6QzHCA76XeuFIz96PhPaEcTTPG3Ps1bWilbXpSXRa         RMSRRzWtI3pcKC5VpvKwOYG8Z/1Q==; q=dns/txt; t=1757436342;         x=1757699142;"
+      },
+      {
+        "name": "DKIM-Signature",
+        "value": "v=1; s=hs1-45403856; d=stackblitz.com;         i=@stackblitz.com;         h=sender:from:from:reply-to:to:to:cc:cc:subject:subject:list-unsubscribe:form-sub:feedback-id:list-unsubscribe-post;         a=rsa-sha256; c=relaxed/relaxed;         bh=EvpSRFIVRgzXSZWrIwLkJXhEgeYu+QBRtkmY9zzuKH0=;         b=JvwdW8RzJjO+RMF6z7RGYBRAITMfgimiCzKX86YKUPBtdaU0BLfHoQ5hWwYvSD         79L7iYRtzcT/XinsHT33/Hpbm1t/hjMyI6RhD5BDc5gkveS8w1zMdRcgKf91jde         HI7JGhgFZXcssjkAfS7YvG5rUXl9bPIkzD3QhpYC4RdF7ua83PhGRrhEw5c4EM3         jHWjdmsBdjeCGJV88T5SuLaxCjFVGFw2XaON60azPUsSljggJhFdy/HqH2XfRO7         lWDvOhYhFGUDz8qtplM+DzuXkHcEKs57g0MxRARWBeFMb/uuUwubNWaiEh9vtew         mHYaOqZmaeLxdMu/pPD9UGzjsYtw==; q=dns/txt; t=1757436342;         x=1757699142;"
+      },
+      {
+        "name": "Return-Path",
+        "value": "<1axb4az9eo55blwjdjkfger6l5jabaiu3jswms@bf54x.hubspotemail.net>"
+      },
+      { "name": "X-HS-Cid", "value": "1axfxlciqnkmbvhtjmx3znllggid5o5jv7etdg" },
+      {
+        "name": "List-Unsubscribe",
+        "value": "<mailto:1axdexxc3sii98rqrmsjrfbhncgpnby6wwbfhw@bf54x.hubspotemail.net?subject=unsubscribe>, <https://hs-45403856.s.hubspotemail.net/subscription-preferences/v2/unsubscribe-all?data=W2nXS-N30h-MkW1LdV022zDtdXW24WzD12RwTRNW1Zq3GM4hGhpZW2HXxfj3VxrC8W49NRby2qLbBpW3LP_y02CNzrbW4kBpH54ktbGKW1Zw1T132JsKhW47wqW02Th6wZW1Vw3jk2YM8YcW1LfLKW3ddL9mW41KqBs2vRCQGW21kTlf3HcsjDW3VBNXL2sRrJBW3h-zqN239R_-W3F02KK1Xb6MFW2KJyMq3gtns-W3-0DKJ43SmlLW2w3YrB41YZytW4rjG-C3D_DKDW3H415z3G-Y6ZW3T280425719YW2FXL723P97JTW4mywQN20XRwtW1XxyK32KQthDW2CvDnD1-VtLYW4tzYV82MlJ-vW2YvRZB4ckQJlW4cSmXR23jr-1W1N3VfB4ckw4HW3P6cCy1BrksSW1_rzkJ4cLtq8W3yYKqh34BVffW4hNc8C1_386cW1_9QKr4hxGzKW2YpSC92Mk3R0W2w4pcF2YqGd-W4hs_ZV3bywWhW2MFs7M43VQ1WW2w4P-61V0nsPW3JJLgm3VQPT-W3_Z8Pw1BDfqkW3_pFBT1ZfM91W327tkW3g1Fs9W1Lm8SD1_mKrdW3GJ8Lm1Xpp2RW4kJBmh2t52ZmW3_Gn3v2q-B9ZW41Q0YH2PBlJPW47LwbJ2w2nwPW3gq2Gr2vNPY4f24Tvfp04>"
+      },
+      { "name": "Date", "value": "Tue, 9 Sep 2025 09:46:57 -0700" },
+      {
+        "name": "From",
+        "value": "\"Eric at Bolt.new\" <ericsimons@stackblitz.com>"
+      },
+      { "name": "Reply-To", "value": "ericsimons@stackblitz.com" },
+      { "name": "To", "value": "ibrahim.alrayyan.iknow@gmail.com" },
+      {
+        "name": "Message-ID",
+        "value": "<1757436341648.30b2368c-bca9-474c-9da2-e1da70aa1f39@bf54x.hubspotemail.net>"
+      },
+      { "name": "Subject", "value": "Claude Code in Bolt" },
+      { "name": "MIME-Version", "value": "1.0" },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"----=_Part_567263_1107786167.1757436341731\""
+      },
+      { "name": "Precedence", "value": "bulk" },
+      {
+        "name": "X-Report-Abuse-To",
+        "value": "abuse@hubspot.com (see https://policy.hubspot.com/abuse-complaints)"
+      },
+      {
+        "name": "List-Unsubscribe-Post",
+        "value": "List-Unsubscribe=One-Click"
+      },
+      { "name": "Feedback-ID", "value": "ae1bf4i:aigkde61:aipuz:HubSpot" }
+    ],
+    "body": { "size": 0 },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          { "name": "Content-Type", "value": "text/plain; charset=utf-8" },
+          { "name": "Content-Transfer-Encoding", "value": "quoted-printable" }
+        ],
+        "body": {
+          "size": 3769,
+          "data": "=="
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          { "name": "Content-Type", "value": "text/html; charset=\"utf-8\"" },
+          { "name": "Content-Transfer-Encoding", "value": "quoted-printable" }
+        ],
+        "body": {
+          "size": 18107,
+          "data": "=="
+        }
+      }
+    ]
+  },
+  "sizeEstimate": 30357,
+  "historyId": "240878",
+  "internalDate": "1757436417000"
+}

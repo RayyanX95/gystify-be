@@ -31,6 +31,11 @@ export class GmailMessageDto {
   @IsEmail()
   senderEmail: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEmail()
+  replyToEmail?: string;
+
   @ApiProperty()
   @IsString()
   // plain-text snippet (up to 1000 chars)
@@ -49,6 +54,23 @@ export class GmailMessageDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  internalDate?: Date;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  labelIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  category?: string; // extracted from labelIds (PROMOTIONS, UPDATES, etc.)
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsBoolean()
   isRead?: boolean;
 
@@ -59,6 +81,11 @@ export class GmailMessageDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsBoolean()
+  isStarred?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   priorityScore?: number;
 
@@ -66,6 +93,49 @@ export class GmailMessageDto {
   @IsOptional()
   @IsString()
   summary?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  sizeEstimate?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  historyId?: string;
+
+  // Email authentication and security
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isAuthenticated?: boolean; // based on SPF, DKIM, DMARC
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  authenticationResults?: string;
+
+  // Subscription management
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  listUnsubscribeUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  hasUnsubscribeOption?: boolean;
+
+  // Sender reputation indicators
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  returnPath?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isFromTrustedDomain?: boolean;
 }
 
 export class SummaryEmailDto {

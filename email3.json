@@ -1,0 +1,126 @@
+{
+  "id": "1990ba6b5eb3388e",
+  "threadId": "1990ba6b5eb3388e",
+  "labelIds": ["UNREAD", "CATEGORY_UPDATES", "INBOX"],
+  "snippet": "Hey! We wanted to let you know that we&#39;re updating our Terms of Service, Privacy Policy, Paid Services Terms, and Community Guidelines. These updates will support our evolving business, address",
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      { "name": "Delivered-To", "value": "ibrahim.alrayyan.iknow@gmail.com" },
+      {
+        "name": "Received",
+        "value": "by 2002:a05:7022:7a5:b0:ba:9c55:4487 with SMTP id 37csp107143dlg;        Tue, 2 Sep 2025 11:18:19 -0700 (PDT)"
+      },
+      {
+        "name": "X-Google-Smtp-Source",
+        "value": "AGHT+IHxwesdbUt9qTUpXHyj6WejT9Jp9Mu7KEMosrcrh/U/M49pee1BgH3w7PAJqIIGb5bkbmTK"
+      },
+      {
+        "name": "X-Received",
+        "value": "by 2002:a17:903:2c9:b0:246:464d:1194 with SMTP id d9443c01a7336-24944a10a8cmr160072925ad.2.1756837098946;        Tue, 02 Sep 2025 11:18:18 -0700 (PDT)"
+      },
+      {
+        "name": "ARC-Seal",
+        "value": "i=1; a=rsa-sha256; t=1756837098; cv=none;        d=google.com; s=arc-20240605;        b=UNc82nXPxw8Arnbwm4SRiHMJwBX1Bp5CsJ6cxbslLFrLfWAW/89ch0vOq946MNb4+u         IdqgGmoIuvN+1txdw5GKQG9/oOxi+U2fiBmQeS1bYGwnEpXm8TG6IirCuwZg29Ljo1eZ         sgn/w4qr9rX0PZjbwD7DG6G6YnNMcMuZOQjP9ukCDHKqyCTBpci34n5MJR0F7OJIS54h         l14ayfiUD9K3HHCU0NfphJd3Fe63BZCbcIsKOqI0ShKdRLIa2BGNkYTgFEXXAxeldyhK         mOjPGJhlKupcbMq9fBo1wz40x+5ZX5fviD2iMuhMnk44J9VyOjVHytgjnY+ME7riYW2i         tbnw=="
+      },
+      {
+        "name": "ARC-Message-Signature",
+        "value": "i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;        h=to:subject:message-id:mime-version:from:date:dkim-signature         :dkim-signature;        bh=cD2SNZTLJO65pnFGfsoBQJlPtqadUZLf/oxZ+A4g46g=;        fh=dDrOrE3sbSUOiT5PNzFa4oaJTujuUkPTVprLpLl8SwY=;        b=gZys+Z3O81vusUrZeOrKZkAieFJlUJpAtVhW3eFuT6s+3k13UH2ADCpQ+OVqazk60+         n7Z7l6vpAI7ZRy9wCmKxMDCVdCQlBB4gLvRRiQ5Fzt2XeP8BK1Vf3CR2Yb5CjT5ZCC4W         p4WLlxVuSr6xIUJlbqwVD3Z54mVmEmBWkDeFjlI64ZSKsLd1DjwUwmmWjWpzkWd8etpx         Fmcp6pFkDBnODD4W/1/4uL/o90lOKK9ULk4NAHdMUEkCIBRPgooMfDJDcyDES8LvuQe/         HxhiEoop97BztWuFSLxysKi/l2yrHgPVwclSsMgPbwHPIO8M9UFaLVPXmMZlkzeRYqfM         sgUw==;        dara=google.com"
+      },
+      {
+        "name": "ARC-Authentication-Results",
+        "value": "i=1; mx.google.com;       dkim=pass header.i=@discord.com header.s=s1 header.b=tOyRUes9;       dkim=pass header.i=@sendgrid.info header.s=smtpapi header.b=uVL65PT9;       spf=pass (google.com: domain of bounces+12551241-243d-ibrahim.alrayyan.iknow=gmail.com@mail.discord.com designates 149.72.228.79 as permitted sender) smtp.mailfrom=\"bounces+12551241-243d-ibrahim.alrayyan.iknow=gmail.com@mail.discord.com\";       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=discord.com"
+      },
+      {
+        "name": "Return-Path",
+        "value": "<bounces+12551241-243d-ibrahim.alrayyan.iknow=gmail.com@mail.discord.com>"
+      },
+      {
+        "name": "Received",
+        "value": "from o22.ptr2763.discord.com (o22.ptr2763.discord.com. [149.72.228.79])        by mx.google.com with ESMTPS id d9443c01a7336-24b0a45143fsi24093535ad.606.2025.09.02.11.18.18        for <ibrahim.alrayyan.iknow@gmail.com>        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);        Tue, 02 Sep 2025 11:18:18 -0700 (PDT)"
+      },
+      {
+        "name": "Received-SPF",
+        "value": "pass (google.com: domain of bounces+12551241-243d-ibrahim.alrayyan.iknow=gmail.com@mail.discord.com designates 149.72.228.79 as permitted sender) client-ip=149.72.228.79;"
+      },
+      {
+        "name": "Authentication-Results",
+        "value": "mx.google.com;       dkim=pass header.i=@discord.com header.s=s1 header.b=tOyRUes9;       dkim=pass header.i=@sendgrid.info header.s=smtpapi header.b=uVL65PT9;       spf=pass (google.com: domain of bounces+12551241-243d-ibrahim.alrayyan.iknow=gmail.com@mail.discord.com designates 149.72.228.79 as permitted sender) smtp.mailfrom=\"bounces+12551241-243d-ibrahim.alrayyan.iknow=gmail.com@mail.discord.com\";       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=discord.com"
+      },
+      {
+        "name": "DKIM-Signature",
+        "value": "v=1; a=rsa-sha256; c=relaxed/relaxed; d=discord.com; h=content-type:date:from:mime-version:subject:to:cc:content-type:date: feedback-id:from:subject:to; s=s1; bh=cD2SNZTLJO65pnFGfsoBQJlPtqadUZLf/oxZ+A4g46g=; b=tOyRUes9iXwg9nFubKbWGV0YcrYz6Nl7bOj9CEr+OoCtf/0pdhBRGLL3Qz7i4/XVuqmq c5V4zFK2vY/JRZIqMaKgDy9WpVCH0PBWBV85EBUT4kOvxO71fj8gA4osEhkdOzeBNC2xCO jYuUwfzJxyH3b72YTd1ZTc2gvK2HpjFMCoZD938DmVWfgaPn0GMpAL0L8JS2aY2+HXu+lT 6PdH1dExTlrL/NmXbr4yON4wTtLD3aJdcmFDi+/bTuvGaupynaXmeOwhUKOtIwey4O6JUF X34FwEYl9bpvDuwjE9CJMDAPIIVQXObL+oo1k/DsUazsMNbCAvZKNgArp0b6snVA=="
+      },
+      {
+        "name": "DKIM-Signature",
+        "value": "v=1; a=rsa-sha256; c=relaxed/relaxed; d=sendgrid.info; h=content-type:date:from:mime-version:subject:to:cc:content-type:date: feedback-id:from:subject:to; s=smtpapi; bh=cD2SNZTLJO65pnFGfsoBQJlPtqadUZLf/oxZ+A4g46g=; b=uVL65PT9eZvy3rKUAeIxwDyGRujyiscxbmiUy1tjMTApNZ7vT7CT12bp979poCfl+OjJ 7QVg5XyfV+EF7i1caF9oG1oN7ZG7rCCToNcYMAMlJHthH8t2quc/YlF/N02yHvIe2xMTHi iIYNVgP36vXG3IEFnyyINTku8GziuEK8M="
+      },
+      {
+        "name": "Received",
+        "value": "by recvd-5f4d8d6f66-vf84g with SMTP id recvd-5f4d8d6f66-vf84g-1-68B734E9-45 2025-09-02 18:18:17.507730189 +0000 UTC m=+7782480.994312067"
+      },
+      {
+        "name": "Received",
+        "value": "from MTI1NTEyNDE (unknown) by geopod-ismtpd-16 (SG) with HTTP id phgwsIGoS22h4zX-iD-c_A Tue, 02 Sep 2025 18:18:17.469 +0000 (UTC)"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=b8a2d6f344ddd5cb7567670dcf3fd4813f6befa825e8766bc7c200d3fff9"
+      },
+      { "name": "Date", "value": "Tue, 02 Sep 2025 18:18:17 +0000 (UTC)" },
+      { "name": "From", "value": "Discord <notifications@discord.com>" },
+      { "name": "Mime-Version", "value": "1.0" },
+      {
+        "name": "Message-ID",
+        "value": "<phgwsIGoS22h4zX-iD-c_A@geopod-ismtpd-16>"
+      },
+      { "name": "Subject", "value": "Updates to Discord’s Policies" },
+      {
+        "name": "X-SG-EID",
+        "value": "u001.ncph/x3Jw0NdHDwq6twCdpH45FU+jy6C2PSJl0TVq3dF8wB1fQbqzERhm94UgYHNxRRRfa5bk9Yj2F67OpBghtUtFallEIn6rJk6xN0ubWvJ5T4b/4qq4ICoZrLiaxIw+CFeRHnu9JKdR5yj7wGgo0yFXnjiOP1Jaqz+uWf69GOL67eXtAXD/i8yCwB+vDx2sZsfuNsJAjClxB9EgyQWrzN9/wtNz2KJ6Aqdq21OYMhEyVDyHO51yjJW0gvLh/3p"
+      },
+      {
+        "name": "X-SG-ID",
+        "value": "u001.SdBcvi+Evd/bQef8eZF3BuuaPhIX/AX0xUCTQWOor1G6BRqd6JNHWQb5u8NZtUJLVZ0mP0YKkgIXcmNGgtsJog=="
+      },
+      { "name": "To", "value": "ibrahim.alrayyan.iknow@gmail.com" },
+      { "name": "X-Entity-ID", "value": "u001./CsYf4h0MhpT6Wn4uiuimw==" }
+    ],
+    "body": { "size": 0 },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          { "name": "Content-Transfer-Encoding", "value": "quoted-printable" },
+          { "name": "Content-Type", "value": "text/plain; charset=utf-8" },
+          { "name": "Mime-Version", "value": "1.0" }
+        ],
+        "body": {
+          "size": 3040,
+          "data": "=="
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          { "name": "Content-Transfer-Encoding", "value": "quoted-printable" },
+          { "name": "Content-Type", "value": "text/html; charset=utf-8" },
+          { "name": "Mime-Version", "value": "1.0" }
+        ],
+        "body": {
+          "size": 19045,
+          "data": "=="
+        }
+      }
+    ]
+  },
+  "sizeEstimate": 29301,
+  "historyId": "240832",
+  "internalDate": "1756837097000"
+}

@@ -1,9 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { gmail_v1, google } from 'googleapis';
+import { google } from 'googleapis';
 import {
   extractEmailBody,
   htmlToPlainText,
   normalizeSnippet,
+  extractEmailCategory,
+  checkEmailAuthentication,
+  extractUnsubscribeInfo,
+  isTrustedDomain,
+  calculateEnhancedImportance,
 } from './email.utils';
 import { User } from '../entities';
 import { GmailMessageDto } from 'src/dto/email.dto';
@@ -19,35 +24,8 @@ export class EmailService {
   constructor() {}
 
   /**
-   * Parse Gmail message metadata to extract importance signals.
-   * Uses labelIds and common headers like Importance/Priority/X-Priority.
-   */
-  private parseGmailImportance(message: gmail_v1.Schema$Message) {
-    const labels = new Set(
-      (message.labelIds || []).map((s) => s.toUpperCase()),
-    );
-    console.log('labels :>> ', labels);
-    if (labels.has('IMPORTANT')) return { isImportant: true, score: 1.0 };
-    if (labels.has('STARRED')) return { isImportant: true, score: 0.85 };
 
-    const headers = message.payload?.headers || [];
-    const findHeader = (name: string) =>
-      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value;
 
-    const importance = findHeader('Importance')?.toLowerCase();
-    const priority = findHeader('Priority')?.toLowerCase();
-    const xPriority = findHeader('X-Priority');
-
-    if (importance === 'high' || priority === 'urgent') {
-      return { isImportant: true, score: 0.8 };
-    }
-
-    if (xPriority && /^[1-2]/.test(xPriority)) {
-      return { isImportant: true, score: 0.9 };
-    }
-
-    return { isImportant: false, score: 0.5 };
-  }
 
   /**
    * Fetch the latest messages for a user from Gmail WITHOUT persisting to DB.
@@ -94,12 +72,20 @@ export class EmailService {
           const msg = messageResponse.data;
           if (!msg?.payload) continue;
 
+          this.logger.debug(
+            `Processing message ${message.id}: ${msg.snippet?.substring(0, 100)}...`,
+          );
+
           const headers = msg.payload.headers || [];
           const subject =
             headers.find((h) => h.name === 'Subject')?.value || 'No Subject';
           const from =
             headers.find((h) => h.name === 'From')?.value || 'Unknown';
+          const replyTo = headers.find((h) => h.name === 'Reply-To')?.value;
           const date = headers.find((h) => h.name === 'Date')?.value;
+          const returnPath = headers.find(
+            (h) => h.name === 'Return-Path',
+          )?.value;
 
           const emailMatch = from.match(/<(.+)>/);
           const senderEmail = emailMatch ? emailMatch[1] : from;
@@ -107,34 +93,67 @@ export class EmailService {
             ? from.replace(/<.+>/, '').trim()
             : from;
 
+          const replyToMatch = replyTo?.match(/<(.+)>/);
+          const replyToEmail = replyToMatch ? replyToMatch[1] : replyTo;
+
           let body = extractEmailBody(msg.payload);
           body = normalizeSnippet(htmlToPlainText(body), 1000);
 
+          // Enhanced metadata extraction
+          const labelIds = msg.labelIds || [];
+          const category = extractEmailCategory(labelIds);
+          const authResult = checkEmailAuthentication(headers);
+          const unsubscribeInfo = extractUnsubscribeInfo(headers);
+          const isFromTrustedDomain = isTrustedDomain(senderEmail);
+
+          // Enhanced importance calculation
+          const importance = calculateEnhancedImportance(
+            labelIds,
+            headers,
+            senderEmail,
+            msg.sizeEstimate || 0,
+          );
+
           const emailMsg = new GmailMessageDto();
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore - assigning fields for transient object
           emailMsg.gmailId = message.id;
           emailMsg.threadId = msg.threadId || message.id;
           emailMsg.subject = subject;
           emailMsg.sender = senderName;
           emailMsg.senderEmail = senderEmail;
+          emailMsg.replyToEmail = replyToEmail || undefined;
           emailMsg.body = body;
-          // snippet fallback
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           emailMsg.snippet = (msg.snippet || body || subject).substring(
             0,
             1000,
           );
           emailMsg.receivedAt = date ? new Date(date) : new Date();
+          emailMsg.internalDate = msg.internalDate
+            ? new Date(Number(msg.internalDate))
+            : undefined;
 
-          const importance = this.parseGmailImportance(msg);
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          emailMsg.priorityScore = importance.score;
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
+          // Labels and categorization
+          emailMsg.labelIds = labelIds;
+          emailMsg.category = category;
+          emailMsg.isRead = !labelIds.includes('UNREAD');
+          emailMsg.isStarred = labelIds.includes('STARRED');
+
+          // Importance and priority
           emailMsg.isImportant = importance.isImportant;
+          emailMsg.priorityScore = importance.score;
+
+          // Size and metadata
+          emailMsg.sizeEstimate = msg.sizeEstimate || undefined;
+          emailMsg.historyId = msg.historyId || undefined;
+
+          // Authentication and security
+          emailMsg.isAuthenticated = authResult.isAuthenticated;
+          emailMsg.authenticationResults = authResult.authenticationResults;
+          emailMsg.isFromTrustedDomain = isFromTrustedDomain;
+          emailMsg.returnPath = returnPath || undefined;
+
+          // Subscription management
+          emailMsg.hasUnsubscribeOption = unsubscribeInfo.hasUnsubscribeOption;
+          emailMsg.listUnsubscribeUrl = unsubscribeInfo.listUnsubscribeUrl;
 
           emailMessages.push(emailMsg);
         } catch (error) {
