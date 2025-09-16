@@ -67,21 +67,52 @@ export class MetricsService {
    */
   private async calculateEnhancedTimeSaved(userId: string): Promise<string> {
     // Get aggregated metadata from all daily summaries
+    // Use COALESCE to handle NULL values properly
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const metadataQuery: any = await this.summaryRepo
       .createQueryBuilder('s')
       .select([
         'SUM(s.total_emails) as totalEmails',
-        'SUM(s.total_size_bytes) as totalSizeBytes',
+        'COALESCE(SUM(s.total_size_bytes), 0) as totalSizeBytes',
         'AVG(s.avg_priority_score) as avgPriorityScore',
-        'SUM(s.high_priority_emails) as highPriorityEmails',
-        'SUM(s.promotional_emails) as promotionalEmails',
+        'COALESCE(SUM(s.high_priority_emails), 0) as highPriorityEmails',
+        'COALESCE(SUM(s.promotional_emails), 0) as promotionalEmails',
       ])
       .where('s.user_id = :userId', { userId })
       .getRawOne();
 
+    console.log('Debug - metadataQuery result:', metadataQuery);
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!metadataQuery || !metadataQuery.totalEmails) {
+      console.log('Debug - No metadata found or totalEmails is null/0');
+      // Fallback calculation using basic email count
+      const emailCountResult: { sum: string | null } | undefined =
+        await this.summaryRepo
+          .createQueryBuilder('s')
+          .select('SUM(s.total_emails)', 'sum')
+          .where('s.user_id = :userId', { userId })
+          .getRawOne();
+
+      const emailCount =
+        emailCountResult && emailCountResult.sum
+          ? Number(emailCountResult.sum)
+          : 0;
+      console.log('Debug - Fallback email count:', emailCount);
+
+      if (emailCount > 0) {
+        // Simple fallback: 2 minutes per email
+        const fallbackTimeSavedMinutes = emailCount * BASE_MINUTES_PER_EMAIL;
+        const fallbackHours = (fallbackTimeSavedMinutes / 60).toFixed(2);
+        console.log(
+          'Debug - Fallback calculation:',
+          fallbackTimeSavedMinutes,
+          'minutes =',
+          fallbackHours,
+          'hours',
+        );
+        return fallbackHours;
+      }
       return '0.00';
     }
 
@@ -93,6 +124,13 @@ export class MetricsService {
     const highPriorityEmails = Number(metadataQuery.highPriorityEmails || 0);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const promotionalEmails = Number(metadataQuery.promotionalEmails || 0);
+
+    console.log('Debug - Extracted values:', {
+      totalEmails,
+      totalSizeBytes,
+      highPriorityEmails,
+      promotionalEmails,
+    });
 
     // Calculate enhanced time per email based on metadata
     let totalTimeSavedMinutes = 0; // minutes
@@ -117,6 +155,17 @@ export class MetricsService {
     totalTimeSavedMinutes =
       highPriorityTime + regularTime + promotionalTime + sizeBasedTimeMinutes; // minutes
 
-    return (totalTimeSavedMinutes / 60).toFixed(2); // convert minutes to hours
+    console.log('Debug - Time calculation breakdown:', {
+      highPriorityTime,
+      regularTime,
+      promotionalTime,
+      sizeBasedTimeMinutes,
+      totalTimeSavedMinutes,
+    });
+
+    const finalHours = (totalTimeSavedMinutes / 60).toFixed(2);
+    console.log('Debug - Final result:', finalHours, 'hours');
+
+    return finalHours; // convert minutes to hours
   }
 }
