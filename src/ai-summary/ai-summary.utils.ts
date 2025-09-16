@@ -27,7 +27,8 @@ export interface EmailSummary {
 // ⚡ Quick insights | 🎯 Comprehensive action plans
 
 export const summaryPrompt = (emailSummaries: EmailSummary[]) => `
-        Create an intelligent daily email summary based on these emails with rich metadata:
+        You are a smart, efficient AI assistant. Your goal is to provide a concise, scannable daily email overview.
+        Create an intelligent daily email summary based on these emails with their rich metadata:
         
         ${JSON.stringify(emailSummaries, null, 2)}
         
@@ -35,109 +36,108 @@ export const summaryPrompt = (emailSummaries: EmailSummary[]) => `
         - category: Group messages by category (PROMOTIONS, UPDATES, SOCIAL, PERSONAL, OTHER).
         - priorityScore: Numeric importance (0.0-1.0). Treat >= 0.6 as high priority.
         - isAuthenticated: True indicates sender authentication (DKIM/SPF) — more trustworthy.
-        - isFromTrustedDomain: True for major platforms (gmail.com, linkedin.com, github.com); use this to prioritize trusted notifications.
+        - isFromTrustedDomain: True for major platforms (gmail.com, linkedin.com); use this to prioritize trusted notifications.
         - hasUnsubscribeOption: True indicates marketing/newsletters — candidate for cleanup.
-        - sizeEstimate: Large messages/files might contain attachments or important content.
-        - isStarred/isImportant: User-marked flags that override automatic scoring when present.
         
-        Please provide (for the DAILY SUMMARY):
-        1. A short headline/title for the summary (one-line, e.g. '3 new messages — 1 urgent').
-        2. A concise, human-readable snapshot that states totals and the main focus (use the "summary" field below).
-        3. Top 3 senders and whether they are from trusted domains or unknown sources.
-        4. Up to 3 prioritized action items (focus on authenticated and high-priority emails).
-        5. A brief security note: number authenticated vs unauthenticated and any immediate red flags.
-        6. A simple category breakdown (PROMOTIONS, UPDATES, PERSONAL, SOCIAL, OTHER) with counts.
+        Please provide the summary in the following JSON format.
         
         **DAILY SUMMARY FORMAT** (Concise Overview):
         {
-          "title": "Short headline for the summary (e.g. '3 new messages — 1 urgent')",
-          "summary": "Daily snapshot: X emails received; Y flagged as high-priority (authenticated). Main focus: [most important email or notable pattern].",
-          "keyInsights": "1) Priority: X emails require attention. 2) Security: Y% authenticated, Z suspicious. 3) Cleanup: A promotional emails recommended for unsubscribe or archive.",
-          "topSenders": ["Top 3–5 senders with trust indicators (trusted/unknown)"],
-          "actionItems": ["Up to 3 concise actions, ordered by priority (focus on authenticated/high-priority emails)"],
-          "securityInsights": "Short security note: number authenticated, any red flags or suspicious senders",
-          "categoryBreakdown": {"PROMOTIONS": 0, "UPDATES": 0, "PERSONAL": 0, "SOCIAL": 0, "OTHER": 0},
-          "notes": "One-line note on the most urgent items or cleanup recommendations"
+          "title": "A short headline for the summary (e.g., '5 New Emails - 2 Urgent Items')",
+          "summary": "Daily snapshot: X emails received; Y flagged as high-priority. The main focus is on [mention the most important email's theme or sender].",
+          "keyInsights": "A single string containing 3 bullet points. 1) Priority: Name the sender/subject of the highest priority item. 2) Security: State the number of unauthenticated emails and name one if it looks suspicious. 3) Cleanup: Suggest the most impactful cleanup action (e.g., 'Unsubscribe from the noisiest sender').",
+          "topSenders": [
+            {
+              "sender": "GitHub",
+              "count": 2,
+              "status": "trusted"
+            },
+            {
+              "sender": "Jane Doe",
+              "count": 1,
+              "status": "personal"
+            }
+          ],
+          "actionItems": [
+            "Up to 3 concise actions, ordered by priority (focus on authenticated/high-priority emails)"
+          ],
+          "securityInsights": "A brief security note: X of Y emails authenticated. Flag any specific red flags or suspicious senders.",
+          "categoryBreakdown": {
+            "PROMOTIONS": 0,
+            "UPDATES": 0,
+            "PERSONAL": 0,
+            "SOCIAL": 0,
+            "OTHER": 0
+          }
         }
 
-        Keep it CONCISE — this is a short daily overview (headline + snapshot). Focus on immediate actions and any security red flags.
+        Keep the content CONCISE and highly scannable. This is a quick daily overview.
 `;
 
 export const detailedSummaryPrompt = (
   emailSummaries: EmailSummary[],
   context?: string,
 ) => `
-        ${context}Create a comprehensive, security-aware detailed report from these emails with rich metadata:
+        You are an expert executive assistant AI specializing in productivity and cybersecurity. Your task is to create a detailed, comprehensive email report.
+        Your thought process should be:
+        1. First, analyze each email individually to extract its priority, security status, and key action.
+        2. Second, use the provided user context to adjust the priority of relevant emails.
+        3. Finally, aggregate these individual analyses into the specified JSON format, ensuring every field is populated accurately.
+
+        ${context ? `USER CONTEXT: The user's current focus is: "${context}". Elevate the priority of emails related to this context.` : ''}
+        
+        Create a comprehensive, security-aware detailed report from these emails with rich metadata:
         
         ${JSON.stringify(emailSummaries, null, 2)}
         
         IMPORTANT: Leverage the metadata for intelligent analysis:
-        - Prioritize high priorityScore (0.6+), authenticated, and trusted domain emails
-        - Group by categories (PROMOTIONS, UPDATES, PERSONAL, SOCIAL)
-        - Flag unauthenticated or suspicious emails for security review
-        - Identify actionable items from personal/work emails vs promotional noise
-        - Use sizeEstimate and isStarred for importance indicators
+        - Prioritize high priorityScore (0.6+), authenticated, and trusted domain emails.
+        - Group by categories and flag unauthenticated or suspicious emails for security review.
+        - Identify actionable items, separating personal/work emails from promotional noise.
         
-  Please provide a structured detailed summary including:
-  1. A short report title (one-line) and an executive summary that calls out the top authenticated/high-priority items.
-  2. Priority action items split into immediate, this week, and cleanup categories (include email subjects where relevant).
-  3. A security assessment with counts of authenticated emails, trusted domains, and any suspicious items (with reasons).
-  4. Category analysis showing counts and importance distribution across PERSONAL, PROMOTIONS, UPDATES, SOCIAL, OTHER.
-  5. Suggested reply drafts for the top high-priority personal/work emails (tone and short draft).
-  6. Any important deadlines or dates extracted from trusted sources.
-  7. Main topics/themes grouped by category and priority (short bullet list).
-  8. Risk assessment with flagged unauthenticated emails and recommended actions.
-  9. Subscription management recommendations: keep, unsubscribe, and suggested filters.
+        Please provide a structured detailed summary in the following JSON format.
         
         **DETAILED ANALYSIS FORMAT** (Comprehensive Report):
         {
-          "title": "Short report title (e.g. 'Daily detail — 5 messages, 2 urgent')",
-          "executiveSummary": "Comprehensive analysis listing the most important authenticated messages and overall priorities",
+          "title": "A short report title (e.g., 'Detailed Analysis: 8 Messages, 3 High-Priority Actions')",
+          "executiveSummary": "A comprehensive summary that highlights the most important authenticated messages, mentions any urgent deadlines, and states the overall priorities for the day.",
           "emailByEmail": [
             {
               "subject": "Specific email subject",
               "sender": "Sender name",
               "priorityLevel": "HIGH/MEDIUM/LOW",
-              "requiresAction": true/false,
+              "requiresAction": true,
               "suggestedAction": "Suggested next step for this email",
-              "securityStatus": "authenticated/suspicious/unknown"
+              "securityStatus": "authenticated/unauthenticated/suspicious"
             }
           ],
           "priorityActions": {
-            "immediate": ["Actions to take today (include email subjects)"],
-            "thisWeek": ["Actions to take this week"],
-            "cleanup": ["Unsubscribe/archive/filter suggestions"]
+            "immediate": ["Actions to take today (include email subjects). Prioritize based on context and urgency."],
+            "thisWeek": ["Actions to take this week."],
+            "cleanup": ["Specific unsubscribe/archive/filter suggestions for low-priority mail."]
           },
           "securityAssessment": {
             "authenticatedEmails": 0,
             "trustedDomains": 0,
-            "suspiciousEmails": ["List suspicious emails with reasons"],
-            "recommendations": ["Security steps to take"]
-          },
-          "categoryAnalysis": {
-            "PERSONAL": {
-              "emails": ["Personal email subjects"],
-              "actionItems": ["Responses needed"],
-              "deadlines": ["Mentioned deadlines, if any"]
-            },
-            "PROMOTIONS": {
-              "emails": ["Promotional email subjects"],
-              "unsubscribeRecommendations": ["Which to unsubscribe and why"]
-            }
+            "suspiciousEmails": [
+              { "subject": "Suspicious email subject", "sender": "Sender", "reason": "Reason for suspicion (e.g., unauthenticated, impersonation attempt)" }
+            ],
+            "recommendations": ["Security steps to take (e.g., 'Delete suspicious email from sender X without clicking links')."]
           },
           "suggestedReplies": [
             {
-              "emailSubject": "Original email subject",
-              "replyDraft": "Suggested reply text",
-              "tone": "professional/casual/urgent"
+              "forEmailSubject": "The original email subject to reply to",
+              "goal": "The intended outcome of the reply (e.g., 'Confirm receipt and schedule a meeting for next week').",
+              "tone": "professional/casual/urgent",
+              "replyDraft": "A concise, well-written suggested reply."
             }
           ],
           "subscriptionManagement": {
-            "keepSubscribed": ["Valuable subscriptions to keep"],
-            "unsubscribeNow": ["Low-value subscriptions to remove"],
-            "filterRecommendations": ["Gmail filter suggestions (by sender/subject/label)"]
+            "keepSubscribed": ["Valuable subscriptions to keep (e.g., 'Industry News Weekly')"],
+            "unsubscribeNow": ["Low-value or noisy subscriptions to remove (e.g., 'Daily Marketing Blast')"],
+            "filterRecommendations": ["Gmail filter suggestions (e.g., 'Create filter for sender: newsletter@example.com -> apply label 'Newsletters' and archive')."]
           }
         }
         
-        Note: Always prioritize authenticated emails from trusted domains. Treat unauthenticated emails with caution and flag them in the security assessment.
+        Note: In the 'emailByEmail' array, include a breakdown for ONLY the top 5-7 most important emails to keep the report focused. Always prioritize authenticated emails from trusted domains and flag any unauthenticated emails in the security assessment.
       `;
