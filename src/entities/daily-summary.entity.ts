@@ -17,6 +17,9 @@ export class DailySummary {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'text', nullable: true })
+  title: string;
+
   @Column({ name: 'summary_date', type: 'date' })
   summaryDate: Date;
 

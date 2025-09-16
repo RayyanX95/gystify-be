@@ -31,6 +31,7 @@ export interface EmailSummaryResult {
  * aiProcessingTimeMs: time spent on AI processing (for metrics)
  */
 export interface DailySummaryResult {
+  title: string;
   summary: string;
   totalEmails: number;
   importantEmails: number;
@@ -73,6 +74,7 @@ export class AiSummaryService {
 
     if (emails.length === 0) {
       return {
+        title: 'No new messages',
         summary: 'No emails to summarize today.',
         totalEmails: 0,
         importantEmails: 0,
@@ -124,6 +126,7 @@ export class AiSummaryService {
 
       try {
         const aiResult = JSON.parse(content) as {
+          title: string;
           summary: string;
           keyInsights: string;
           topSenders: string[];
@@ -136,6 +139,7 @@ export class AiSummaryService {
         console.log('Summary -- aiResult :>> ', aiResult);
 
         return {
+          title: aiResult.title,
           summary: aiResult.summary,
           totalEmails: emails.length,
           importantEmails: emails.filter((e) => e.isImportant).length,

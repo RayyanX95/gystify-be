@@ -1,1 +1,1 @@
-export const MAX_EMAILS_FOR_SUMMARY = 5;
+export const MAX_EMAILS_FOR_SUMMARY = 4;

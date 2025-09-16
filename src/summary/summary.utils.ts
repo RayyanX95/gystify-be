@@ -23,6 +23,7 @@ export const getMockDailySummary = (
   const importantEmails = emails.filter((e) => e.isImportant).length;
 
   return {
+    title: `${emails.length} new messages${importantEmails > 0 ? ` — ${importantEmails} urgent` : ''}`,
     summary: `Today you received ${emails.length} emails. ${importantEmails > 0 ? `${importantEmails} were marked as important.` : 'No high-priority emails detected.'} Most emails came from ${topSenders.slice(0, 3).join(', ')}.`,
     totalEmails: emails.length,
     importantEmails,

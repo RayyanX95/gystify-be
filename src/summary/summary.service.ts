@@ -89,6 +89,7 @@ export class SummaryService {
       } else {
         // Create new summary
         const daily = this.dailySummaryRepository.create({
+          title: aiResult.title,
           summaryDate: today,
           totalEmails: aiResult.totalEmails,
           importantEmails: aiResult.importantEmails,
