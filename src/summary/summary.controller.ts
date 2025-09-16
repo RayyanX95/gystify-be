@@ -41,7 +41,7 @@ export class SummaryController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async generateForUser(@Req() req: Request): Promise<DailySummary> {
     const user = req.user as User;
-    const result = await this.summaryService.generateAndPersist(user.id);
+    const result = await this.summaryService.generateDailySumary(user.id);
     return result;
   }
 
@@ -85,7 +85,7 @@ export class SummaryController {
     return this.summaryService.expandSummaryById(summaryId, context);
   }
 
-  @Get()
+  @Get('all')
   @ApiOperation({ summary: 'Get daily Summary for user' })
   @ApiResponse({
     status: 200,

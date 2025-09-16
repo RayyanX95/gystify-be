@@ -6,12 +6,13 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  Unique,
+  // Unique,
 } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity('daily_summaries')
-@Unique(['user', 'summaryDate']) // Ensure one summary per user per day
+// TODO: Re-enable this constraint after ensuring no duplicates exist
+// @Unique(['user', 'summaryDate']) // Ensure one summary per user per day
 export class DailySummary {
   @PrimaryGeneratedColumn('uuid')
   id: string;

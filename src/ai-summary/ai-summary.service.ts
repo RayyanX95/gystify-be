@@ -108,7 +108,7 @@ export class AiSummaryService {
       const aiStartTime = Date.now();
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 800,
@@ -209,7 +209,7 @@ export class AiSummaryService {
       const prompt = detailedSummaryPrompt(emailData, contextInstruction);
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 1200,

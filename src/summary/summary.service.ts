@@ -16,6 +16,7 @@ import { DailySummary } from '../entities/daily-summary.entity';
 //   getMockDetailedSummary,
 // } from './summary.utils';
 import { GmailMessageDto } from '../dto/email.dto';
+import { MAX_EMAILS_FOR_SUMMARY } from 'src/configs';
 
 @Injectable()
 /**
@@ -38,18 +39,19 @@ export class SummaryService {
    * Generate a daily summary from recent emails for the given user and persist it.
    * Uses upsert logic - updates existing summary for the date or creates new one.
    */
-  async generateAndPersist(userId: string): Promise<DailySummary> {
+  async generateDailySumary(userId: string): Promise<DailySummary> {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Start of day for consistent comparison
 
+      // TODO: Re-enable this check to prevent duplicate summaries
       // Check if summary already exists for today
-      const existingSummary = await this.dailySummaryRepository.findOne({
-        where: {
-          user: { id: userId },
-          summaryDate: today,
-        },
-      });
+      // const existingSummary = await this.dailySummaryRepository.findOne({
+      //   where: {
+      //     user: { id: userId },
+      //     summaryDate: today,
+      //   },
+      // });
 
       // fetch emails for the user from Gmail directly (no DB persistence)
       const user = await this.userService.findById(userId);
@@ -59,27 +61,31 @@ export class SummaryService {
 
       const emails = await this.emailService.fetchGmailMessagesNoPersist(
         user,
-        3,
+        MAX_EMAILS_FOR_SUMMARY,
       );
 
       // TODO: Temporarily using mock data to save OpenAI API quota
       // const aiResult = getMockDailySummary(emails);
       const aiResult = await this.aiSummaryService.generateDailySummary(emails);
 
+      console.log('object :>> ', aiResult);
+
       // Calculate enhanced metrics from email metadata
       const enhancedMetrics = this.calculateEmailMetrics(emails);
 
-      if (existingSummary) {
+      // TODO: Enable this check as it should prevent duplicate summaries when TESTING is DONE
+      // eslint-disable-next-line no-constant-condition
+      if (false) {
         // Update existing summary
-        this.dailySummaryRepository.merge(existingSummary, {
-          totalEmails: aiResult.totalEmails,
-          importantEmails: aiResult.importantEmails,
-          summary: aiResult.summary,
-          keyInsights: aiResult.keyInsights,
-          aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
-          ...enhancedMetrics,
-        });
-        return this.dailySummaryRepository.save(existingSummary);
+        // this.dailySummaryRepository.merge(existingSummary, {
+        //   totalEmails: aiResult.totalEmails,
+        //   importantEmails: aiResult.importantEmails,
+        //   summary: aiResult.summary,
+        //   keyInsights: aiResult.keyInsights,
+        //   aiProcessingTimeMs: aiResult.aiProcessingTimeMs,
+        //   ...enhancedMetrics,
+        // });
+        // return this.dailySummaryRepository.save(existingSummary);
       } else {
         // Create new summary
         const daily = this.dailySummaryRepository.create({
@@ -146,7 +152,7 @@ export class SummaryService {
       const user = summary.user;
       const emails = await this.emailService.fetchGmailMessagesNoPersist(
         user,
-        10,
+        MAX_EMAILS_FOR_SUMMARY,
       );
 
       if (emails.length === 0) {
