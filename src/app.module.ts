@@ -10,8 +10,16 @@ import { EmailModule } from './email/email.module';
 import { AiSummaryModule } from './ai-summary/ai-summary.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { SummaryModule } from './summary/summary.module';
-import { User, DailySummary } from './entities';
+import {
+  User,
+  DailySummary,
+  Sender,
+  Snapshot,
+  SnapshotItem,
+  UserInteraction,
+} from './entities';
 import { MetricsModule } from './metrics/metrics.module';
+import { SnapshotModule } from './snapshot/snapshot.module';
 
 @Module({
   imports: [
@@ -28,7 +36,14 @@ import { MetricsModule } from './metrics/metrics.module';
         username: configService.get<string>('DATABASE_USERNAME'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [User, DailySummary],
+        entities: [
+          User,
+          DailySummary,
+          Sender,
+          Snapshot,
+          SnapshotItem,
+          UserInteraction,
+        ],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),
@@ -42,6 +57,7 @@ import { MetricsModule } from './metrics/metrics.module';
     SchedulerModule,
     SummaryModule,
     MetricsModule,
+    SnapshotModule,
   ],
   controllers: [AppController],
   providers: [AppService],
