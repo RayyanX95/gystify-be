@@ -28,17 +28,6 @@ export class SummaryController {
   constructor(private readonly summaryService: SummaryService) {}
 
   @Post('generate')
-  @ApiOperation({
-    summary: 'Generate and persist a daily summary for the authenticated user',
-    description:
-      'Runs AI summarization over recent emails and stores a DailySummary record for the user. If a summary already exists for today, it will be updated with fresh data.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Daily summary created or updated',
-    type: DailySummary,
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async generateForUser(@Req() req: Request): Promise<DailySummary> {
     const user = req.user as User;
     const result = await this.summaryService.generateDailySumary(user.id);

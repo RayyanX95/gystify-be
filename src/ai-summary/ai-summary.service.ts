@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { detailedSummaryPrompt, summaryPrompt } from './ai-summary.utils';
+import {
+  detailedSummaryPrompt,
+  summaryPrompt,
+  emailSnapshotPrompt,
+} from './ai-summary.utils';
 import { GmailMessageDto } from 'src/dto/email.dto';
 
 /**
@@ -59,6 +63,69 @@ export class AiSummaryService {
     } else {
       this.openai = new OpenAI({ apiKey });
     }
+  }
+
+  /**
+   * Generate a snapshot summary for a single email
+   * Returns bullet points in the format: * Point text
+   */
+  async generateEmailSnapshot(text: string): Promise<string> {
+    if (!this.openai) {
+      throw new Error('OpenAI not configured');
+    }
+
+    if (!text || text.trim().length === 0) {
+      return 'No content to summarize';
+    }
+
+    try {
+      // Truncate text to prevent token limit issues
+      const truncatedText = text.substring(0, 2000);
+
+      const prompt = emailSnapshotPrompt(truncatedText);
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 300,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('OpenAI returned empty response');
+      }
+
+      // Clean up the response to ensure proper formatting
+      const cleanedContent = content
+        .split('\n')
+        .filter((line) => line.trim().length > 0)
+        .map((line) =>
+          line.startsWith('*') ? line : `* ${line.replace(/^[•\-*]\s*/, '')}`,
+        )
+        .join('\n');
+
+      return cleanedContent;
+    } catch (error) {
+      this.logger.error('Error generating email snapshot:', error);
+
+      // Re-throw the error with proper context for the frontend
+      if (error instanceof Error) {
+        throw new Error(`Failed to generate email snapshot: ${error.message}`);
+      } else {
+        throw new Error(
+          'Failed to generate email snapshot due to unknown error',
+        );
+      }
+    }
+  }
+
+  /**
+   * Alias for generateEmailSnapshot for backward compatibility
+   * Used by snapshot service
+   */
+  async generateSummary(text: string): Promise<string> {
+    return this.generateEmailSnapshot(text);
   }
 
   /**

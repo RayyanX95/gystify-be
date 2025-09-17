@@ -15,6 +15,11 @@ export class GmailMessageDto {
   @IsString()
   gmailId: string;
 
+  // Add messageId as alias for gmailId for snapshot service compatibility
+  get messageId(): string {
+    return this.gmailId;
+  }
+
   @ApiProperty()
   @IsString()
   threadId: string;
@@ -30,6 +35,11 @@ export class GmailMessageDto {
   @ApiProperty()
   @IsEmail()
   senderEmail: string;
+
+  // Add date as alias for receivedAt for snapshot service compatibility
+  get date(): Date {
+    return this.receivedAt;
+  }
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -136,6 +146,16 @@ export class GmailMessageDto {
   @IsOptional()
   @IsBoolean()
   isFromTrustedDomain?: boolean;
+
+  // Attachments metadata for snapshot service
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  attachments?: Array<{
+    filename: string;
+    mimeType: string;
+    size: number;
+  }>;
 }
 
 export class SummaryEmailDto {

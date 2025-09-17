@@ -24,10 +24,6 @@ export class EmailService {
   constructor() {}
 
   /**
-
-
-
-  /**
    * Fetch the latest messages for a user from Gmail WITHOUT persisting to DB.
    * Returns GmailMessageDto instances that are NOT saved.
    * Useful for transient processing (summaries) where storing full bodies is undesirable.
@@ -54,6 +50,7 @@ export class EmailService {
       const response = await gmail.users.messages.list({
         userId: 'me',
         maxResults,
+        q: 'is:unread', // Fetch only unread emails for snapshot
       });
 
       const messages = response.data.messages || [];

@@ -18,13 +18,27 @@ export interface EmailSummary {
   receivedAt: GmailMessageDto['receivedAt'];
 }
 
-// Key Differences:
-// [Daily Summary] | [Detailed Summary]
-// 📈 Metrics & patterns | 📋 Email-by-email analysis
-// 🚀 Top 3 actions | 📝 Specific reply drafts
-// 🔒 Security overview | 🛡️ Detailed security assessment
-// 📊 Category counts | 📧 Specific email subjects
-// ⚡ Quick insights | 🎯 Comprehensive action plans
+export const emailSnapshotPrompt = (emailContent: string) => `
+        You are an email summarization expert. Analyze the following email content and provide a concise summary in bullet point format.
+
+        Requirements:
+        - Extract the key information and main points
+        - Format each point as a bullet starting with "*"
+        - Keep each point concise and informative
+        - Focus on actionable items, important dates, key people, and main topics
+        - Maximum 5 bullet points
+        - Do not include any additional text, just the bullet points
+
+        Email content:
+        ${emailContent}
+
+        Format your response exactly like this example:
+        * TEDNext is a conference focused on growth and innovation.
+        * The conference will be held in November.
+        * Attendees can gain insights from speakers like Sean Bankhead.
+        * TED offers games, tech newsletters, and a daily talks subscription.
+        * TED encourages membership for exclusive benefits.
+`;
 
 export const summaryPrompt = (emailSummaries: EmailSummary[]) => `
         You are a smart, efficient AI assistant. Your goal is to provide a concise, scannable daily email overview.
