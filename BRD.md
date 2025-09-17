@@ -1,191 +1,119 @@
-# 📆 Gystify — Snapshot-based Email Summary SaaS (Updated BRD)
+# 📆 Gystify — Snapshot-based Email Summary SaaS (Updated & Enhanced BRD)
 
-This document describes the product direction for Gystify based on the provided dashboard / snapshot screenshots (Prebox used only as a visual/reference example). The product centers on daily "snapshots" (per-user snapshots created once per day) that summarize every unread email at snapshot time. Each unread email becomes one snapshot item (card) with a short summary and metadata. Users can open the original email in Gmail, remove (archive/delete) the original from their Gmail inbox via the UI, and mark an item as "deleted" on the snapshot UI which visually dims it (soft-delete in the snapshot).
+This document describes the product direction for Gystify. The product centers on daily "snapshots" that summarize every unread email at a specific moment. Each unread email becomes a snapshot item (card) with a short summary and metadata. Users can act on these items directly from the Gystify interface.
 
 ---
 
-## Summary of core concept
+## Summary of Core Concept
 
-- Snapshots: one snapshot per user per day containing summarized entries for each unread email at snapshot creation time.
-- Snapshot item: one summarized entry per unread message — summary text + metadata (subject, sender, date, messageId, provider).
-- Actions from snapshot UI:
-  - Open in Gmail (link to the original email).
-  - Remove from inbox (perform action on Gmail: archive/move/delete depending on user preference).
-  - Mark as deleted on snapshot (soft-delete / dim the card; doesn't necessarily remove the email from Gmail).
-- Privacy: we store only summary + metadata for each snapshot item — no full email bodies persisted.
+- **Snapshots**: One snapshot per user per day containing summarized entries for each unread email at snapshot creation time.
+- **Snapshot Item**: One summarized entry per unread message — summary text + metadata (subject, sender, date, etc.).
+- **Actions**: From the snapshot UI, users can open the original email, remove it from their Gmail inbox, and visually dismiss items on the snapshot.
+- **Privacy First**: We only store the summary and metadata for each snapshot item — **no full email bodies are ever persisted** on our servers.
 
 ---
 
 ## Phase 1: MVP — Daily Snapshots for Unread Email
 
-Features
+#### **Features**
 
-- Gmail OAuth integration (scopes to read metadata and modify messages for remove action).
-- Create one snapshot per user per day that:
-  - Queries Gmail for unread messages at snapshot time.
-  - Generates a concise summary for each unread message (one snapshot item per message).
-  - Renders snapshot items as cards (see screenshots).
-- Snapshot item fields: summary (text), subject, sender, date, messageId, provider ("gmail"), snippet(optional), attachments metadata (filename/type/size) — attachments ignored by default except metadata.
-- UI actions exposed in the snapshot:
-  - Open (link to Gmail message).
-  - Remove (archive/delete message in Gmail; requires appropriate OAuth scope and user confirmation).
-  - Mark as deleted on snapshot (soft-delete flag; UI renders card dimmed).
-- Delivery: snapshots accessible via web dashboard and optionally emailed to user.
+- **Gmail OAuth Integration**: Scopes to read metadata and modify messages (for the remove action).
+- **Daily Snapshot Creation**: Generate one snapshot per user per day that queries Gmail for unread messages and creates a concise summary for each one.
+- **Snapshot Item Fields**: summary (text), subject, sender name & email, date, messageId, provider ("gmail"), snippet (optional), and attachments metadata (filename/type/size).
+- **UI Actions**:
+  - **Open**: Link directly to the message in the Gmail web view.
+  - **Mark as Ignored on Snapshot**: The primary, one-click action. Sets a soft-delete flag, visually dimming the card. This **does not** affect the email in Gmail.
+  - **Remove from Inbox**: A secondary action requiring explicit confirmation. Archives or deletes the message in Gmail via API call.
+  - Summarize the **50 most recent** unread emails from current day.
 
-Technical requirements
+#### **Technical Requirements**
 
-- Email integration: Gmail API (use incremental sync or list/unread query).
-- Summarization: LLM (cost-optimized model) to create per-email summaries.
-- DB: Postgres (or MongoDB) with these core entities:
-  - users (profile, tokens, preferences)
-  - snapshots (userId, date, createdAt, retentionExpiresAt)
-  - snapshot_items (snapshotId, messageId, provider, subject, sender, date, summary, categoryTags[], priority?, deletedOnSnapshot boolean, inboxRemoved boolean, attachmentsMeta)
-- Keep full email bodies out of persistent storage.
-- Snapshot retention: snapshots auto-delete after 72 hours (matches screenshots).
-- Attachments: initially only capture attachment metadata; actual files ignored.
+- **Email Integration**: Gmail API (using list/unread query).
+- **Summarization**: Cost-optimized LLM to create per-email summaries.
+- **DB**: Postgres with core entities (see Data Model section). A dedicated `senders` table will be used to efficiently populate the sender filter UI and support future personalization.
+- **Privacy**: Full email bodies are processed in-memory and are not persisted.
+- **Snapshot Retention**: Snapshots and their items are automatically deleted after 72 hours.
 
-UX notes (from screenshots)
+#### **UX Notes**
 
-- Left column: sender list / filter.
-- Main area: per-email cards with summary bullets, "Open" and "Delete" buttons (Delete here is the snapshot-item delete which dims the card). Provide a separate confirmation/action for removing from Gmail.
-- Dashboard shows trial usage quota and recent snapshots — include counts and quick-create snapshot button.
-
-Launch target
-
-- Launch MVP within ~2 months with Gmail-only snapshots, per-email summaries, and the snapshot UI actions.
+- The primary action on a card should be the non-destructive "Mark as Done." The "Remove from Inbox" action should be clearly distinct and require a second confirmation step to prevent accidental data loss.
 
 ---
 
 ## Phase 2: Smarter Snapshot Items (Categorization)
 
-Features
+#### **Features**
 
-- Classify each snapshot item into categories (Action Items, FYI, Attachments/Links).
-- Detect tasks and deadlines (e.g., "please reply by", "due", date mentions) and flag as action items.
-
-Technical requirements
-
-- Add NLP/LLM classification step after summarization.
-- DB: extend snapshot_items with category tags and extracted structured fields (dueDate, hasAction boolean).
-- UI: group snapshot items within a snapshot by category.
-
-Privacy
-
-- Still avoid storing raw email bodies.
+- Classify each snapshot item into categories (e.g., **Action Item, FYI, Newsletter, Receipt**).
+- Detect tasks and deadlines (e.g., "please reply by," "due") and automatically flag items as requiring action.
 
 ---
 
 ## Phase 3: Priority & Outlook Integration
 
-Features
+#### **Features**
 
-- Priority ranking on snapshot items: Urgent / Medium / Low.
-- Outlook / Microsoft 365 integration (Microsoft Graph), mapping provider = "outlook".
-- Incremental sync for both providers (Gmail history IDs, Graph delta queries).
-
-Technical requirements
-
-- Hybrid rules + AI for priority.
-- DB: add priorityScore, priorityLabel to snapshot_items.
-- Deduplicate by provider + messageId.
-
-OAuth/scopes (Phase 3)
-
-- Gmail: scopes for read, modify, offline_access.
-- Microsoft Graph: Mail.Read, Mail.ReadWrite (for remove), offline_access, openid, profile.
+- Priority ranking on snapshot items: **Urgent / High / Medium / Low**.
+- **Microsoft 365 / Outlook** integration via Microsoft Graph API.
 
 ---
 
 ## Phase 4: Multi-Mode Summaries & Preferences
 
-Features
+#### **Features**
 
-- Allow user preference for summary style per snapshot (bullet, narrative, developer).
-- Let user choose whether snapshot "Delete" dims only snapshot or also removes from inbox by default.
-
-Technical requirements
-
-- DB: add user preferences for summaryStyle and defaultInboxAction (none/archive/delete).
-- Pass style instruction to LLM at generation time.
+- User preferences for summary style per snapshot (e.g., **bullet points, narrative paragraph, developer-focused**).
+- User preference to set the default "Remove from Inbox" behavior (archive vs. delete).
 
 ---
 
 ## Phase 5: Productivity Integrations
 
-Features
+#### **Features**
 
-- Export Action Items → Notion, Todoist, Trello.
-- Push urgent items → Slack/Teams.
-- Calendar detection → Google Calendar suggestions.
-
-Technical requirements
-
-- Add lightweight integration connectors, store linked task IDs to avoid duplicates.
-- OAuth flows for each integration.
+- Export "Action Items" to tools like **Notion, Todoist, or Trello**.
+- Push urgent items or summaries to **Slack or Microsoft Teams**.
 
 ---
 
 ## Phase 6: Personal Snapshot AI Profile
 
-Features
+#### **Features**
 
-- Learn from user actions on snapshot items:
-  - Items user always dims/ignores → deprioritize next time.
-  - Items user regularly removes from inbox → treat sender or subject patterns preferentially.
-- Allow custom rules and boosts.
-
-Technical requirements
-
-- Track userInteractions (clicked, ignored, removedFromInbox, deletedOnSnapshot).
-- Build personalization layer to adjust priority and summary focus.
+- Learn from user actions on snapshot items (e.g., items the user always marks as done immediately).
+- Allow users to create custom rules (e.g., "Always mark emails from this sender as low priority").
 
 ---
 
-## Data model (concise)
+## Data Model (Concise)
 
-- users
-  - id, email, oauthTokens, preferences (summaryStyle, defaultInboxAction), createdAt
-- snapshots
+- **users**
+  - id, email, firstName, lastName, profilePicture, oauthTokens, gmail_refreshtoken,
+- **senders**
+  - id, userId, name, emailAddress (unique per user), domain
+- **snapshots**
   - id, userId, snapshotDate, createdAt, retentionExpiresAt
-- snapshot_items
-  - id, snapshotId, provider, messageId, subject, sender, date, summary, snippet, categoryTags[], priorityScore, priorityLabel, attachmentsMeta[], deletedOnSnapshot (bool), inboxRemoved (bool), openUrl
-- userInteractions
-  - id, userId, snapshotItemId, actionType, actionAt, metadata
-
-Retention & privacy
-
-- Snapshots auto-expire (default 72h).
-- No raw email bodies stored by default — only summaries + minimal metadata.
-- User can opt into storing attachments in S3 (future).
+- **snapshot_items**
+  - id, snapshotId, **senderId**, provider, messageId, subject, date, summary, categoryTags[], priorityScore, priorityLabel, attachmentsMeta[], **isIgnoredFromSnapshots** (bool), **isRemovedFromInbox** (bool), openUrl
+- **userInteractions**
+  - id, userId, snapshotItemId, actionType (e.g., 'mark_ignored', 'remove_inbox'), actionAt
 
 ---
 
-## Snapshot lifecycle & actions (detailed)
+## KPIs & Success Metrics
 
-- Creation:
-  - Daily scheduled job (or manual "Create Snapshot" button) fetches all unread messages for the user at that moment.
-  - For each message, generate a summary + metadata and write snapshot_item.
-- UI actions per snapshot item:
-  - Open: openUrl → Gmail web view for that message.
-  - Remove from inbox: call Gmail API to archive/delete the message. On success set inboxRemoved = true.
-  - Mark deleted on snapshot: set deletedOnSnapshot = true (UI dims card). This is purely snapshot-scoped (does not modify Gmail unless user also chooses Remove).
-- Sync considerations:
-  - When performing inbox actions, reflect result in snapshot_item.inboxRemoved.
-  - Deduplicate messages using provider + messageId.
+- **Phase 1 (MVP)**
+  - **Activation**: Weekly new user sign-ups.
+  - **Engagement**: Daily Active Users (DAU), % of users creating a snapshot daily.
+  - **Core Value**: Average items actioned (marked ignored or removed) per snapshot.
+- **Phase 2 (Categorization)**
+  - **Feature Adoption**: % of users who use category filters.
+  - **Accuracy**: Rate of manual re-categorization by users (lower is better).
 
 ---
 
-## Operational notes
+## Quick Roadmap (High-Level)
 
-- Cost control: batch LLM calls and prompt-engineer for shorter summaries; consider per-snapshot token budgets.
-- Security: store tokens encrypted, request minimum scopes. Surface clear confirmations before performing inbox removals.
-- Audit/Logging: track API calls that modify inbox (who requested remove, when, status).
-
----
-
-## Quick roadmap (high level)
-
-- MVP (Gmail snapshots + per-email summaries + Open/Remove/Mark-deleted on snapshot; 72h retention) — target release in ~2 months.
-- Next releases: categorization, priority, Outlook integration, multi-mode summaries, integrations, personalization.
-
----
+- **MVP (Q1)**: Gmail snapshots, per-email summaries, Open/Mark-Ignored/Remove actions, 72h retention.
+- **Next Releases (Q2-Q3)**: Categorization, priority ranking, Outlook integration.
+- **Future (Q4+)**: Multi-mode summaries, productivity integrations, and personalization.
