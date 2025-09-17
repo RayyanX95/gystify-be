@@ -32,7 +32,7 @@ export class EmailService {
    * Returns GmailMessageDto instances that are NOT saved.
    * Useful for transient processing (summaries) where storing full bodies is undesirable.
    */
-  async fetchGmailMessagesNoPersist(
+  async fetchGmailMessages(
     user: User,
     maxResults = 5,
   ): Promise<GmailMessageDto[]> {

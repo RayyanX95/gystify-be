@@ -31,7 +31,7 @@ export class SchedulerService {
 
     for (const user of activeUsers) {
       try {
-        await this.emailService.fetchGmailMessagesNoPersist(user, 10);
+        await this.emailService.fetchGmailMessages(user, 10);
         this.logger.log(`Synced emails for user ${user.email}`);
       } catch (error) {
         this.logger.error(

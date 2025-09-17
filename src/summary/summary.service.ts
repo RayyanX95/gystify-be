@@ -59,7 +59,7 @@ export class SummaryService {
         throw new NotFoundException(`User with ID ${userId} not found`);
       }
 
-      const emails = await this.emailService.fetchGmailMessagesNoPersist(
+      const emails = await this.emailService.fetchGmailMessages(
         user,
         MAX_EMAILS_FOR_SUMMARY,
       );
@@ -151,7 +151,7 @@ export class SummaryService {
 
       // Fetch emails from provider for the summary date (no DB persistence)
       const user = summary.user;
-      const emails = await this.emailService.fetchGmailMessagesNoPersist(
+      const emails = await this.emailService.fetchGmailMessages(
         user,
         MAX_EMAILS_FOR_SUMMARY,
       );
