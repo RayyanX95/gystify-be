@@ -16,7 +16,7 @@ import { DailySummary } from '../entities/daily-summary.entity';
 //   getMockDetailedSummary,
 // } from './summary.utils';
 import { GmailMessageDto } from '../dto/email.dto';
-import { MAX_EMAILS_FOR_SUMMARY } from 'src/configs';
+import { MAX_EMAILS_FOR_SUMMARY } from 'src/config';
 
 @Injectable()
 /**

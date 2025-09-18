@@ -16,9 +16,9 @@ import {
   CreateSnapshotResponseDto,
 } from './dto';
 import { GmailMessageDto } from 'src/dto/email.dto';
-import { MAX_EMAILS_FOR_SUMMARY } from 'src/configs';
 import { gmail_v1 } from 'googleapis';
 import { isTrustedDomain } from 'src/email/email.utils';
+import { MAX_EMAILS_FOR_SUMMARY } from 'src/config';
 
 @Injectable()
 export class SnapshotService {
