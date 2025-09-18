@@ -253,3 +253,61 @@ Application logs are available in the console when running in development mode.
 ---
 
 **Happy Coding! 🎉**
+
+---
+
+📋 Proposed Modules:
+
+1. SnapshotModule (Core functionality)
+   Purpose: Handle daily snapshot creation, retrieval, and management
+   Endpoints:
+   GET /snapshots - Get user's snapshots (with pagination)
+   GET /snapshots/:id - Get specific snapshot with items
+   POST /snapshots - Create new snapshot (trigger manually)
+   DELETE /snapshots/:id - Delete snapshot (admin/cleanup)
+2. SnapshotItemModule (Item actions)
+   Purpose: Handle individual snapshot item actions
+   Endpoints:
+   PATCH /snapshot-items/:id/mark-done - Mark item as done (non-destructive)
+   PATCH /snapshot-items/:id/remove-inbox - Remove from Gmail inbox (destructive)
+   GET /snapshot-items/:id/open-url - Get Gmail open URL
+3. SenderModule (Filtering & management)
+   Purpose: Manage senders for UI filtering and future personalization
+   Endpoints:
+   GET /senders - Get user's senders (for filter dropdown)
+   GET /senders/:id/stats - Get sender statistics (future feature)
+4. GmailModule (Email integration)
+   Purpose: Handle Gmail API operations
+   Endpoints:
+   GET /gmail/unread - Get unread emails (for snapshot creation)
+   POST /gmail/archive/:messageId - Archive email in Gmail
+   POST /gmail/delete/:messageId - Delete email in Gmail
+   GET /gmail/auth-status - Check OAuth status
+5. AnalyticsModule (User interactions)
+   Purpose: Track user interactions for KPIs and learning
+   Endpoints:
+   POST /analytics/interaction - Record user interaction
+   GET /analytics/dashboard - Get user dashboard stats
+   🤔 Questions for Discussion:
+   Module Organization:
+   Should SnapshotItemModule be separate or part of SnapshotModule?
+   Should GmailModule be separate or integrated into SnapshotModule?
+   Authentication:
+   All endpoints should require JWT authentication, right?
+   Should we use guards on module level or controller level?
+   Existing Modules:
+   I see you already have EmailModule, SchedulerModule, SummaryModule - should we refactor/integrate with these or keep separate?
+   Priority Order:
+   Which module should we start with? I suggest this order:
+
+SnapshotModule (core functionality)
+GmailModule (email integration)
+SnapshotItemModule (user actions)
+SenderModule (filtering)
+AnalyticsModule (tracking)
+DTOs & Validation:
+Should we create DTOs for request/response validation?
+Pagination strategy for snapshots list?
+Which module would you like to start with and discuss in detail?
+
+Claude Sonnet 4 • 1x

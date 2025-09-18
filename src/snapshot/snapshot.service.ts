@@ -17,6 +17,8 @@ import {
 } from './dto';
 import { GmailMessageDto } from 'src/dto/email.dto';
 import { MAX_EMAILS_FOR_SUMMARY } from 'src/configs';
+import { gmail_v1 } from 'googleapis';
+import { isTrustedDomain } from 'src/email/email.utils';
 
 @Injectable()
 export class SnapshotService {
@@ -87,6 +89,7 @@ export class SnapshotService {
 
       // Check for existing processed emails to avoid duplicates
       const existingMessageIds = await this.getExistingMessageIds(user.id);
+      // Filter out emails that are already processed
       const newEmails = unreadEmails.filter(
         (email) => !existingMessageIds.includes(email.messageId),
       );
@@ -171,6 +174,14 @@ export class SnapshotService {
       const summary =
         await this.aiSummaryService.generateEmailSnapshot(message);
 
+      // Calculate importance using existing rule-based logic
+      const importanceResult = this.calculateEnhancedImportance(
+        email.labelIds || [],
+        [], // Headers not available in GmailMessageDto, using empty array
+        email.senderEmail,
+        email.sizeEstimate || 0,
+      );
+
       // Create snapshot item
       const snapshotItem = this.snapshotItemRepository.create({
         snapshotId,
@@ -182,6 +193,10 @@ export class SnapshotService {
         snippet: email.snippet,
         openUrl: `https://mail.google.com/mail/u/0/#inbox/${email.messageId}`,
         attachmentsMeta: email.attachments || [],
+
+        // Add importance scoring
+        priorityScore: importanceResult.score,
+        priorityLabel: this.scoreToPriorityLabel(importanceResult.score),
       });
 
       const savedItem = await this.snapshotItemRepository.save(snapshotItem);
@@ -259,10 +274,13 @@ export class SnapshotService {
       openUrl: item.openUrl,
       isIgnoredFromSnapshots: item.isIgnoredFromSnapshots,
       isRemovedFromInbox: item.isRemovedFromInbox,
+      // Metadata
       attachmentsMeta: item.attachmentsMeta,
+      // Importance scoring (now populated)
       categoryTags: item.categoryTags,
       priorityScore: item.priorityScore,
       priorityLabel: item.priorityLabel,
+      // Sender details for UI
       sender: {
         id: item.sender.id,
         name: item.sender.name,
@@ -271,5 +289,86 @@ export class SnapshotService {
       } as SenderResponseDto,
       createdAt: item.createdAt,
     };
+  }
+
+  private calculateEnhancedImportance(
+    labelIds: string[] = [],
+    headers: gmail_v1.Schema$MessagePartHeader[] = [],
+    senderEmail: string = '',
+    sizeEstimate: number = 0,
+  ): { isImportant: boolean; score: number; factors: string[] } {
+    const labels = new Set(labelIds.map((s) => s.toUpperCase()));
+    const factors: string[] = [];
+    let score = 0.5; // base score
+
+    // Gmail labels
+    if (labels.has('IMPORTANT')) {
+      score = Math.max(score, 1.0);
+      factors.push('marked-important');
+    }
+    if (labels.has('STARRED')) {
+      score = Math.max(score, 0.85);
+      factors.push('starred');
+    }
+
+    // Category adjustments
+    if (labels.has('CATEGORY_PROMOTIONS')) {
+      score = Math.min(score, 0.3);
+      factors.push('promotional');
+    } else if (labels.has('CATEGORY_UPDATES')) {
+      score = Math.min(score, 0.4);
+      factors.push('updates');
+    } else if (labels.has('CATEGORY_PERSONAL')) {
+      score = Math.max(score, 0.7);
+      factors.push('personal');
+    }
+
+    // Header-based importance
+    const findHeader = (name: string) =>
+      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value;
+
+    const importance = findHeader('Importance')?.toLowerCase();
+    const priority = findHeader('Priority')?.toLowerCase();
+    const xPriority = findHeader('X-Priority');
+
+    if (importance === 'high' || priority === 'urgent') {
+      score = Math.max(score, 0.8);
+      factors.push('high-priority-header');
+    }
+
+    if (xPriority && /^[1-2]/.test(xPriority)) {
+      score = Math.max(score, 0.9);
+      factors.push('x-priority-high');
+    }
+
+    // Trusted domain bonus
+    if (isTrustedDomain(senderEmail)) {
+      score = Math.min(score + 0.1, 1.0);
+      factors.push('trusted-domain');
+    }
+
+    // Size consideration (very large emails might be important)
+    if (sizeEstimate > 50000) {
+      score = Math.min(score + 0.05, 1.0);
+      factors.push('large-email');
+    }
+
+    return {
+      isImportant: score >= 0.6,
+      score: Math.round(score * 100) / 100,
+      factors,
+    };
+  }
+
+  /**
+   * Convert numeric score to priority label (matches SnapshotItem entity enum)
+   */
+  private scoreToPriorityLabel(
+    score: number,
+  ): 'urgent' | 'high' | 'medium' | 'low' {
+    if (score >= 0.85) return 'urgent';
+    if (score >= 0.7) return 'high';
+    if (score >= 0.4) return 'medium';
+    return 'low';
   }
 }

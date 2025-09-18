@@ -30,7 +30,7 @@ export class EmailService {
    */
   async fetchGmailMessages(
     user: User,
-    maxResults = 5,
+    maxResults: number,
   ): Promise<GmailMessageDto[]> {
     if (!user.gmailRefreshToken) {
       this.logger.warn(`User ${user.id} has no Gmail refresh token`);
@@ -50,6 +50,7 @@ export class EmailService {
       const response = await gmail.users.messages.list({
         userId: 'me',
         maxResults,
+        // TODO: think about ser fetched emails as read to avoid re-fetching
         q: 'is:unread', // Fetch only unread emails for snapshot
       });
 
