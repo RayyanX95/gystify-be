@@ -5,7 +5,7 @@ import {
   Param,
   Body,
   UseGuards,
-  Request,
+  Req,
 } from '@nestjs/common';
 import { SnapshotService } from './snapshot.service';
 import {
@@ -15,6 +15,8 @@ import {
 } from './dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { User } from 'src/entities';
 
 @Controller('snapshots')
 @ApiBearerAuth()
@@ -26,8 +28,10 @@ export class SnapshotController {
    * Get all user's snapshots
    */
   @Get()
-  async getUserSnapshots(@Request() req): Promise<SnapshotResponseDto[]> {
-    return this.snapshotService.getUserSnapshots(req.user.userId);
+  async getUserSnapshots(@Req() req: Request): Promise<SnapshotResponseDto[]> {
+    const user = req.user as User;
+
+    return this.snapshotService.getUserSnapshots(user.id);
   }
 
   /**
@@ -35,20 +39,21 @@ export class SnapshotController {
    */
   @Get(':id')
   async getSnapshotWithItems(
-    @Request() req,
+    @Req() req: Request,
     @Param('id') snapshotId: string,
   ): Promise<SnapshotWithItemsResponseDto> {
-    return this.snapshotService.getSnapshotWithItems(
-      req.user.userId,
-      snapshotId,
-    );
+    const user = req.user as User;
+    return this.snapshotService.getSnapshotWithItems(user.id, snapshotId);
   }
 
   /**
    * Create new snapshot from unread emails
    */
   @Post()
-  async createSnapshot(@Request() req): Promise<CreateSnapshotResponseDto> {
-    return this.snapshotService.createSnapshot(req.user);
+  async createSnapshot(
+    @Req() req: Request,
+  ): Promise<CreateSnapshotResponseDto> {
+    const user = req.user as User;
+    return this.snapshotService.createSnapshot(user);
   }
 }
