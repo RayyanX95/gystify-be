@@ -6,6 +6,14 @@ export class SnapshotResponseDto {
   totalItems: number;
   retentionExpiresAt: Date;
   createdAt: Date;
+
+  // Priority level counts
+  priorityCounts?: {
+    urgent: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
 }
 
 export class SnapshotWithItemsResponseDto extends SnapshotResponseDto {

@@ -39,11 +39,11 @@ export class SnapshotService {
   async getUserSnapshots(userId: string): Promise<SnapshotResponseDto[]> {
     const snapshots = await this.snapshotRepository.find({
       where: { userId },
+      relations: ['items'], // Load items to calculate priority counts
       order: { createdAt: 'DESC' },
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    return snapshots.map(this.mapToSnapshotDto);
+    return snapshots.map((snapshot) => this.mapToSnapshotDto(snapshot));
   }
 
   /**
@@ -265,12 +265,18 @@ export class SnapshotService {
    * Map snapshot entity to DTO
    */
   private mapToSnapshotDto(snapshot: Snapshot): SnapshotResponseDto {
+    // Calculate priority counts if items are loaded
+    const priorityCounts = snapshot.items
+      ? this.calculatePriorityCounts(snapshot.items)
+      : undefined;
+
     return {
       id: snapshot.id,
       snapshotDate: snapshot.snapshotDate.toString(),
       totalItems: snapshot.totalItems,
       retentionExpiresAt: snapshot.retentionExpiresAt,
       createdAt: snapshot.createdAt,
+      priorityCounts,
     };
   }
 
@@ -385,5 +391,24 @@ export class SnapshotService {
     if (score >= 0.7) return 'high';
     if (score >= 0.4) return 'medium';
     return 'low';
+  }
+
+  /**
+   * Calculate priority level counts from snapshot items
+   */
+  private calculatePriorityCounts(items: SnapshotItem[]): {
+    urgent: number;
+    high: number;
+    medium: number;
+    low: number;
+  } {
+    const counts = { urgent: 0, high: 0, medium: 0, low: 0 };
+
+    items.forEach((item) => {
+      const priority = item.priorityLabel || 'low';
+      counts[priority]++;
+    });
+
+    return counts;
   }
 }
