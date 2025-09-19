@@ -69,7 +69,7 @@ export class SchedulerService {
    * Runs every 4 hours to ensure timely cleanup
    */
   // TODO: Adjust frequency as needed based on user base and data volume
-  @Cron('* */1 * * *') // Every 1 hour
+  @Cron('* */10 * * *') // Every 10 hours
   async cleanupExpiredSnapshots() {
     this.logger.log('🔴 🔂 Starting expired snapshots cleanup');
 

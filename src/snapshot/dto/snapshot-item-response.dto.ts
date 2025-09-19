@@ -5,6 +5,7 @@ export class SnapshotItemResponseDto {
   messageId: string;
   subject: string;
   summary: string;
+  finishReason?: string; // e.g., 'content_filter'
   snippet?: string;
   date: Date;
   openUrl?: string;

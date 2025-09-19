@@ -69,29 +69,45 @@ export class AiSummaryService {
    * Generate a snapshot summary for a single email
    * Returns bullet points in the format: * Point text
    */
-  async generateEmailSnapshot(text: string): Promise<string> {
+  async generateEmailSnapshot(
+    text: string,
+  ): Promise<{ content: string; finishReason: string }> {
     if (!this.openai) {
       throw new Error('OpenAI not configured');
     }
 
     if (!text || text.trim().length === 0) {
-      return 'No content to summarize';
+      return {
+        content: 'No content to summarize',
+        finishReason: 'no_content',
+      };
     }
 
     try {
       // Truncate text to prevent token limit issues
-      const truncatedText = text.substring(0, 2000);
+      const truncatedText = text.substring(0, 2000); // First 2000 chars
 
       const prompt = emailSnapshotPrompt(truncatedText);
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 300,
+        temperature: 0.15,
       });
 
-      const content = response.choices[0]?.message?.content;
+      console.log('OpenAI Response :>> ', JSON.stringify(response));
+      const { finish_reason } = response.choices[0];
+      if (finish_reason === 'content_filter') {
+        this.logger.warn(`OpenAI response filtered: ${finish_reason}`);
+
+        return {
+          content:
+            'To ensure a safe and positive experience, our AI filters flagged some of the content in this message. We recommend you open the original email to view its full details.',
+          finishReason: finish_reason,
+        };
+      }
+      const content = response.choices[0].message.content;
+      console.log('OpenAI Content :>> ', { content });
       if (!content) {
         throw new Error('OpenAI returned empty response');
       }
@@ -105,7 +121,10 @@ export class AiSummaryService {
         )
         .join('\n');
 
-      return cleanedContent;
+      return {
+        content: cleanedContent,
+        finishReason: finish_reason,
+      };
     } catch (error) {
       this.logger.error('Error generating email snapshot:', error);
 
@@ -118,14 +137,6 @@ export class AiSummaryService {
         );
       }
     }
-  }
-
-  /**
-   * Alias for generateEmailSnapshot for backward compatibility
-   * Used by snapshot service
-   */
-  async generateSummary(text: string): Promise<string> {
-    return this.generateEmailSnapshot(text);
   }
 
   /**

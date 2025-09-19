@@ -112,6 +112,14 @@ export class SnapshotService {
         user.id,
       );
 
+      if (snapshotItems.length === 0) {
+        return {
+          success: false,
+          message:
+            'No new unread emails to process. All recent emails are already in existing snapshots.',
+        };
+      }
+
       // Update snapshot total items
       snapshot.totalItems = snapshotItems.length;
       await this.snapshotRepository.save(snapshot);
@@ -174,6 +182,11 @@ export class SnapshotService {
       const summary =
         await this.aiSummaryService.generateEmailSnapshot(message);
 
+      if (!summary || summary.content.length === 0) {
+        // Skip if summary is empty
+        continue;
+      }
+
       // Calculate importance using existing rule-based logic
       const importanceResult = this.calculateEnhancedImportance(
         email.labelIds || [],
@@ -189,7 +202,8 @@ export class SnapshotService {
         messageId: email.messageId,
         subject: email.subject,
         date: email.date,
-        summary,
+        summary: summary.content,
+        finishReason: summary.finishReason,
         snippet: email.snippet,
         openUrl: `https://mail.google.com/mail/u/0/#inbox/${email.messageId}`,
         attachmentsMeta: email.attachments || [],
@@ -269,6 +283,7 @@ export class SnapshotService {
       messageId: item.messageId,
       subject: item.subject,
       summary: item.summary,
+      finishReason: item.finishReason,
       snippet: item.snippet,
       date: item.date,
       openUrl: item.openUrl,

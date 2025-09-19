@@ -63,6 +63,17 @@ export class SnapshotItem {
   summary: string;
 
   /**
+   * Reason for finishing the summary (e.g., "no_content", "length_exceeded")
+   */
+  @Column({
+    name: 'finish_reason',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  finishReason: string;
+
+  /**
    * Optional snippet from Gmail API for additional context
    */
   @Column({ type: 'varchar', length: 1000, nullable: true })
