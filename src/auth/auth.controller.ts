@@ -5,7 +5,6 @@ import {
   Body,
   UseGuards,
   Req,
-  Res,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -17,46 +16,19 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
   LoginResponseDto,
   RefreshTokenDto,
   RefreshResponseDto,
 } from '../dto/auth.dto';
-import { User } from '../entities/user.entity';
 import { AUTH_CONSTANTS } from './auth.constants';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
-
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  @ApiOperation({ summary: 'Initiate Google OAuth login' })
-  googleAuth() {
-    // Initiates Google OAuth flow
-  }
-
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  @ApiOperation({ summary: 'Google OAuth callback' })
-  @ApiResponse({
-    status: 200,
-    description: 'Login successful',
-    type: LoginResponseDto,
-  })
-  googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    const user = req.user as User;
-    const loginResponse = this.authService.login(user);
-
-    // Redirect to frontend with both tokens
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const redirectUrl = `${frontendUrl}/auth/callback?accessToken=${loginResponse.accessToken}&refreshToken=${loginResponse.refreshToken}`;
-
-    res.redirect(redirectUrl);
-  }
 
   @Post('google/exchange')
   @ApiOperation({ summary: 'Exchange Google authorization code for tokens' })
