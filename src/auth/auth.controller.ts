@@ -25,7 +25,7 @@ import {
 } from '../dto/auth.dto';
 import { AUTH_CONSTANTS } from './auth.constants';
 
-@ApiTags('Authentication')
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
