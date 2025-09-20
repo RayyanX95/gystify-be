@@ -24,15 +24,17 @@ import { AUTH_CONSTANTS } from './auth.constants';
         const jwtSecret = configService.get<string>('JWT_SECRET');
         const jwtExpiresIn =
           configService.get<string>('JWT_EXPIRES_IN') ||
-          AUTH_CONSTANTS.JWT.DEFAULT_EXPIRES_IN;
+          AUTH_CONSTANTS.JWT.ACCESS_TOKEN_EXPIRES_IN;
 
-        // Production environment validation
+        // Production environment validation for ACCESS TOKEN secret only
         if (isProduction && !jwtSecret) {
           throw new Error(
             'JWT_SECRET is required in production environment. ' +
               'Please set the JWT_SECRET environment variable.',
           );
         }
+        // Note: JWT_REFRESH_SECRET validation is handled in AuthService
+        // where refresh tokens are actually used
 
         // Use fallback secret only in development
         const secret =

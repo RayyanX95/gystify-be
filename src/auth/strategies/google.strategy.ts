@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import {
+  Strategy,
+  StrategyOptions,
+  VerifyCallback,
+} from 'passport-google-oauth20';
 import { AuthService } from '../auth.service';
 import { AUTH_CONSTANTS } from '../auth.constants';
 
@@ -11,7 +15,7 @@ interface GoogleProfile {
     givenName: string;
     familyName: string;
   };
-  emails: Array<{ value: string }>;
+  emails: Array<{ value: string; verified: boolean }>;
   photos: Array<{ value: string }>;
 }
 
@@ -21,12 +25,24 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private configService: ConfigService,
     private authService: AuthService,
   ) {
-    super({
+    const options: StrategyOptions = {
       clientID: configService.get<string>('GOOGLE_CLIENT_ID') || '',
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET') || '',
       callbackURL: configService.get<string>('GOOGLE_FE_CALLBACK_URL') || '',
-      scope: AUTH_CONSTANTS.GOOGLE.SCOPES,
-    });
+      scope: AUTH_CONSTANTS.GOOGLE.SCOPES as unknown as string[],
+    };
+
+    super(options);
+
+    // Validate required configuration in production
+    const nodeEnv = configService.get<string>('NODE_ENV');
+    if (nodeEnv === 'production') {
+      if (!options.clientID || !options.clientSecret || !options.callbackURL) {
+        throw new Error(
+          'Google OAuth configuration is incomplete. Please check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_FE_CALLBACK_URL environment variables.',
+        );
+      }
+    }
   }
 
   async validate(
@@ -36,12 +52,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     done: VerifyCallback,
   ): Promise<any> {
     const { id, name, emails, photos } = profile;
+
+    // Enhanced validation
+    if (!emails || emails.length === 0) {
+      return done(new Error('No email found in Google profile'), false);
+    }
+
+    const primaryEmail = emails.find((email) => email.verified) || emails[0];
+
     const user = {
       googleId: id,
-      email: emails[0]?.value || '',
-      firstName: name.givenName,
-      lastName: name.familyName,
-      profilePicture: photos[0]?.value,
+      email: primaryEmail.value,
+      firstName: name?.givenName || '',
+      lastName: name?.familyName || '',
+      profilePicture: photos?.[0]?.value,
       gmailRefreshToken: refreshToken,
       accessToken,
     };
@@ -50,6 +74,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       const validatedUser = await this.authService.validateGoogleUser(user);
       done(null, validatedUser);
     } catch (error) {
+      console.error('Google OAuth validation error:', error);
       done(error, false);
     }
   }
