@@ -19,11 +19,12 @@ import {
 import type { Request } from 'express';
 import { DailySummary, User } from '../entities';
 import { SummaryService } from './summary.service';
+import { AUTH_CONSTANTS } from '../auth/auth.constants';
 
 @ApiTags('Daily Summary')
 @ApiBearerAuth()
 @Controller('summary')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY))
 export class SummaryController {
   constructor(private readonly summaryService: SummaryService) {}
 

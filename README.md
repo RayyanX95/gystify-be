@@ -36,7 +36,7 @@ A NestJS-based backend for an AI-powered email summarization and prioritization 
 
 ```bash
 git clone <repository-url>
-cd email-summarizer-be
+cd gystify-be
 yarn install
 ```
 

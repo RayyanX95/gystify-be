@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { AuthService } from '../auth.service';
+import { AUTH_CONSTANTS } from '../auth.constants';
 
 interface GoogleProfile {
   id: string;
@@ -24,11 +25,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientID: configService.get<string>('GOOGLE_CLIENT_ID') || '',
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET') || '',
       callbackURL: configService.get<string>('GOOGLE_FE_CALLBACK_URL') || '',
-      scope: [
-        'email',
-        'profile',
-        'https://www.googleapis.com/auth/gmail.readonly',
-      ],
+      scope: AUTH_CONSTANTS.GOOGLE.SCOPES,
     });
   }
 

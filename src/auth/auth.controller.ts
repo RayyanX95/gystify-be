@@ -18,6 +18,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginResponseDto } from '../dto/auth.dto';
 import { User } from '../entities/user.entity';
+import { AUTH_CONSTANTS } from './auth.constants';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -44,7 +45,7 @@ export class AuthController {
     const loginResponse = this.authService.login(user);
 
     // Redirect to frontend with token
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const redirectUrl = `${frontendUrl}/auth/callback?token=${loginResponse.accessToken}`;
 
     res.redirect(redirectUrl);
@@ -65,7 +66,7 @@ export class AuthController {
   }
 
   @Get('profile')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved' })

@@ -17,10 +17,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { User } from 'src/entities';
+import { AUTH_CONSTANTS } from '../auth/auth.constants';
 
 @Controller('snapshots')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY))
 export class SnapshotController {
   constructor(private readonly snapshotService: SnapshotService) {}
 
