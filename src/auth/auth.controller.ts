@@ -51,6 +51,11 @@ export class AuthController {
     description:
       'Exchange a valid refresh token for a new access token and refresh token pair',
   })
+  // TODO: Consider supporting HttpOnly Secure cookies for refresh tokens.
+  // - Set refresh token as a Secure, HttpOnly cookie on login/refresh (Set-Cookie)
+  // - Read cookie server-side here when present (fall back to body/header)
+  // - Use SameSite and/or CSRF tokens to mitigate CSRF when using cookies
+  // - Rotate cookie value on refresh and update cookie attributes accordingly
   @ApiBody({ type: RefreshTokenDto })
   @ApiResponse({
     status: 200,
