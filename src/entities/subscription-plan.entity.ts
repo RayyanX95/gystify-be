@@ -46,7 +46,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, PlanLimits> = {
   },
   [SubscriptionTier.TRIAL]: {
     maxSnapshotsPerDay: 3, // Limited to encourage upgrade
-    maxEmailsPerSnapshot: 25, // More generous than competitor
+    maxEmailsPerSnapshot: 15, // More generous than competitor
     snapshotRetentionDays: 3,
     totalSnapshotsAllowed: 21, // 3 per day × 7 days = 21 total
     canUseOutlookIntegration: false,
