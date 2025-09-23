@@ -16,6 +16,13 @@ import {
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
+import {
+  SubscriptionStatusDto,
+  PricingPlansResponseDto,
+  UsageLimitsDto,
+  StartTrialResponseDto,
+  UpgradeResponseDto,
+} from '../dto/subscription.dto';
 import { User } from '../entities/user.entity';
 import type { Request } from 'express';
 import { AUTH_CONSTANTS } from '../auth/auth.constants';
@@ -33,7 +40,11 @@ export class SubscriptionController {
 
   @Get('status')
   @ApiOperation({ summary: 'Get user subscription status and usage' })
-  @ApiResponse({ status: 200, description: 'Subscription status retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription status retrieved',
+    type: SubscriptionStatusDto,
+  })
   async getSubscriptionStatus(@Req() req: Request) {
     const user = req.user as User;
     return this.subscriptionService.getSubscriptionStatus(user.id);
@@ -41,7 +52,11 @@ export class SubscriptionController {
 
   @Get('plans')
   @ApiOperation({ summary: 'Get all available pricing plans' })
-  @ApiResponse({ status: 200, description: 'Pricing plans retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pricing plans retrieved',
+    type: PricingPlansResponseDto,
+  })
   getPricingPlans() {
     return {
       plans: this.subscriptionService.getAllPricingPlans(),
@@ -50,7 +65,11 @@ export class SubscriptionController {
 
   @Get('limits')
   @ApiOperation({ summary: 'Check user limits and usage' })
-  @ApiResponse({ status: 200, description: 'Usage limits retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usage limits retrieved',
+    type: UsageLimitsDto,
+  })
   async getUserLimits(@Req() req: Request) {
     const user = req.user as User;
     return this.subscriptionService.checkUsageLimits(user.id);
@@ -58,16 +77,42 @@ export class SubscriptionController {
 
   @Post('start-trial')
   @ApiOperation({ summary: 'Start free trial for user' })
-  @ApiResponse({ status: 200, description: 'Trial started successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Trial started successfully',
+    type: StartTrialResponseDto,
+  })
   async startTrial(@Req() req: Request) {
     const user = req.user as User;
-    await this.subscriptionService.startFreeTrial(user);
-    return { message: 'Trial started successfully' };
+    const savedUser = await this.subscriptionService.startFreeTrial(user);
+
+    const startedAt = savedUser.trialStartedAt;
+    const endsAt = savedUser.trialExpiresAt;
+    const now = new Date();
+    const daysRemaining = endsAt
+      ? Math.max(
+          0,
+          Math.ceil((endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        )
+      : 0;
+
+    return {
+      message: 'Trial started successfully',
+      trial: {
+        startedAt,
+        endsAt,
+        daysRemaining,
+      },
+    };
   }
 
   @Post('upgrade/:tier')
   @ApiOperation({ summary: 'Upgrade user to a specific plan' })
-  @ApiResponse({ status: 200, description: 'Plan upgraded successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Plan upgraded successfully',
+    type: UpgradeResponseDto,
+  })
   @ApiBody({
     description: 'Billing cycle preference',
     schema: {
@@ -89,12 +134,17 @@ export class SubscriptionController {
     const user = req.user as User;
     const billingCycle = body.billingCycle || BillingCycle.MONTHLY;
 
-    await this.subscriptionService.upgradeUserPlan(user.id, tier, billingCycle);
+    const updatedUser = await this.subscriptionService.upgradeUserPlan(
+      user.id,
+      tier,
+      billingCycle,
+    );
 
     return {
       message: `Upgraded to ${tier} (${billingCycle}) successfully`,
       tier,
       billingCycle,
+      effectiveAt: updatedUser.subscriptionStartedAt,
     };
   }
 }
