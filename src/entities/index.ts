@@ -1,6 +1,7 @@
-export { User } from './user.entity';
-export { DailySummary } from './daily-summary.entity';
-export { Sender } from './sender.entity';
-export { Snapshot } from './snapshot.entity';
-export { SnapshotItem } from './snapshot-item.entity';
-export { UserInteraction } from './user-interaction.entity';
+export * from './user.entity';
+export * from './daily-summary.entity';
+export * from './sender.entity';
+export * from './snapshot.entity';
+export * from './snapshot-item.entity';
+export * from './user-interaction.entity';
+export * from './subscription-plan.entity';

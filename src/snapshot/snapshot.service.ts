@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Snapshot, SnapshotItem, Sender, User } from '../entities';
 import { EmailService } from '../email/email.service';
 import { AiSummaryService } from '../ai-summary/ai-summary.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 import {
   SnapshotResponseDto,
   SnapshotWithItemsResponseDto,
@@ -31,6 +32,7 @@ export class SnapshotService {
     private senderRepository: Repository<Sender>,
     private emailService: EmailService,
     private aiSummaryService: AiSummaryService,
+    private subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -74,10 +76,20 @@ export class SnapshotService {
    */
   async createSnapshot(user: User): Promise<CreateSnapshotResponseDto> {
     try {
+      // Check subscription limits and increment usage
+      await this.subscriptionService.incrementSnapshotUsage(user.id);
+
+      // Get user's plan limits to know how many emails to process
+      const limits = await this.subscriptionService.checkUsageLimits(user.id);
+      const emailLimit = Math.min(
+        limits.maxEmailsAllowed,
+        MAX_EMAILS_FOR_SUMMARY,
+      );
+
       // Get unread emails from EmailService
       const unreadEmails = await this.emailService.fetchGmailMessages(
         user,
-        MAX_EMAILS_FOR_SUMMARY,
+        emailLimit,
       );
 
       if (!unreadEmails || unreadEmails.length === 0) {
@@ -123,6 +135,12 @@ export class SnapshotService {
       // Update snapshot total items
       snapshot.totalItems = snapshotItems.length;
       await this.snapshotRepository.save(snapshot);
+
+      // Track email summarization usage
+      await this.subscriptionService.incrementEmailSummarization(
+        user.id,
+        snapshotItems.length,
+      );
 
       return {
         success: true,

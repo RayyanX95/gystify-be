@@ -7,11 +7,13 @@ import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 import { AUTH_CONSTANTS } from './auth.constants';
 
 @Module({
   imports: [
     UserModule,
+    SubscriptionModule,
     PassportModule.register({
       defaultStrategy: AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY,
       session: AUTH_CONSTANTS.PASSPORT.SESSION_ENABLED,

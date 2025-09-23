@@ -6,11 +6,15 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { User } from '../entities/user.entity';
 import type { Request } from 'express';
 import { AUTH_CONSTANTS } from '../auth/auth.constants';
+import { SubscriptionGuard } from '../guards/subscription.guard';
 
 @Controller('metrics')
 @ApiTags('Metrics')
 @ApiBearerAuth()
-@UseGuards(AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY))
+@UseGuards(
+  AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY),
+  SubscriptionGuard,
+)
 export class MetricsController {
   constructor(private readonly metricsService: MetricsService) {}
 

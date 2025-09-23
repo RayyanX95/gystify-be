@@ -6,6 +6,7 @@ import { SummaryService } from './summary.service';
 import { AiSummaryModule } from '../ai-summary/ai-summary.module';
 import { EmailModule } from '../email/email.module';
 import { UserModule } from '../user/user.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserModule } from '../user/user.module';
     AiSummaryModule,
     EmailModule,
     UserModule,
+    SubscriptionModule, // Required for SubscriptionGuard
   ],
   controllers: [SummaryController],
   providers: [SummaryService],

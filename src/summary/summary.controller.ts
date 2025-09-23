@@ -20,11 +20,15 @@ import type { Request } from 'express';
 import { DailySummary, User } from '../entities';
 import { SummaryService } from './summary.service';
 import { AUTH_CONSTANTS } from '../auth/auth.constants';
+import { SubscriptionGuard } from '../guards/subscription.guard';
 
 @ApiTags('Daily Summary')
 @ApiBearerAuth()
 @Controller('summary')
-@UseGuards(AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY))
+@UseGuards(
+  AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY),
+  SubscriptionGuard,
+)
 export class SummaryController {
   constructor(private readonly summaryService: SummaryService) {}
 
