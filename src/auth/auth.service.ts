@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from '../user/user.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 import { User } from '../entities/user.entity';
 import {
   CreateUserDto,
@@ -48,6 +49,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private subscriptionService: SubscriptionService,
   ) {
     // Validate refresh token secret in production
     this.validateRefreshTokenSecret();
@@ -117,6 +119,10 @@ export class AuthService {
         gmailRefreshToken,
       };
       user = await this.userService.create(createUserDto);
+
+      // Note: Trial is NOT auto-started. Users must explicitly start trial
+      // or subscribe when they try to create their first snapshot.
+      // This creates better conversion pressure and sales opportunities.
     } else if (gmailRefreshToken) {
       // Update refresh token if provided
       user = await this.userService.updateGmailRefreshToken(

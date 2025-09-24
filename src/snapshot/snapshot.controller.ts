@@ -26,6 +26,7 @@ import {
 import type { Request } from 'express';
 import { User } from 'src/entities';
 import { AUTH_CONSTANTS } from '../auth/auth.constants';
+import { SnapshotLimitsGuard } from '../guards/subscription.guard';
 
 @ApiTags('Snapshots')
 @Controller('snapshots')
@@ -73,6 +74,7 @@ export class SnapshotController {
    * Create new snapshot from unread emails
    */
   @Post()
+  @UseGuards(SnapshotLimitsGuard)
   @ApiOperation({ summary: 'Create new snapshot from unread emails' })
   @ApiCreatedResponse({
     description: 'Snapshot created',

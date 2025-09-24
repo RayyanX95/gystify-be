@@ -9,10 +9,9 @@ import { UserModule } from './user/user.module';
 import { EmailModule } from './email/email.module';
 import { AiSummaryModule } from './ai-summary/ai-summary.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
-import { SummaryModule } from './summary/summary.module';
+
 import {
   User,
-  DailySummary,
   Sender,
   Snapshot,
   SnapshotItem,
@@ -20,6 +19,8 @@ import {
 } from './entities';
 import { MetricsModule } from './metrics/metrics.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+// import { ConversionModule } from './conversion/conversion.module'; // Kept for future reference
 
 @Module({
   imports: [
@@ -36,14 +37,7 @@ import { SnapshotModule } from './snapshot/snapshot.module';
         username: configService.get<string>('DATABASE_USERNAME'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [
-          User,
-          DailySummary,
-          Sender,
-          Snapshot,
-          SnapshotItem,
-          UserInteraction,
-        ],
+        entities: [User, Sender, Snapshot, SnapshotItem, UserInteraction],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),
@@ -55,9 +49,10 @@ import { SnapshotModule } from './snapshot/snapshot.module';
     EmailModule,
     AiSummaryModule,
     SchedulerModule,
-    SummaryModule,
     MetricsModule,
     SnapshotModule,
+    SubscriptionModule,
+    // ConversionModule, // Disabled for MVP - kept for future reference
   ],
   controllers: [AppController],
   providers: [AppService],
