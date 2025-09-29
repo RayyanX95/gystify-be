@@ -2,9 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
 
   // Add global prefix to all routes
   app.setGlobalPrefix('api/v1');
@@ -35,25 +37,27 @@ async function bootstrap() {
   const port = process.env.PORT || 8000;
   // If NODE_ENV is 'production' (or if the PORT is set by a hosting provider like Render),
   // bind to '0.0.0.0'. Otherwise, default to 'localhost' (or don't specify the host).
-  const host = process.env.NODE_ENV !== 'development' ? '0.0.0.0' : 'localhost';
+  // const host = process.env.NODE_ENV !== 'development' ? '0.0.0.0' : 'localhost';
+  logger.log(`Starting server in ${process.env.NODE_ENV} mode...`);
 
   // Listen with the conditional host
-  await app.listen(port, host);
+  await app.listen(port, '0.0.0.0');
 
   const externalUrl = process.env.RENDER_EXTERNAL_URL;
+
   if (externalUrl) {
-    console.log(`🚀 Application is running on: ${externalUrl}`);
-    console.log(`🔗 API endpoints available at: ${externalUrl}/api/v1`);
-    console.log(
+    logger.log(`🚀 Application is running on: ${externalUrl}`);
+    logger.log(`🔗 API endpoints available at: ${externalUrl}/api/v1`);
+    logger.log(
       `📚 Swagger documentation available at: ${externalUrl}/api/docs`,
     );
   } else {
     // Keep localhost logs for local development
-    console.log(`🚀 Application is running on: http://localhost:${port}`);
-    console.log(
+    logger.log(`🚀 Application is running on: http://localhost:${port}`);
+    logger.log(
       `🔗 API endpoints available at: http://localhost:${port}/api/v1`,
     );
-    console.log(
+    logger.log(
       `📚 Swagger documentation available at: http://localhost:${port}/api/docs`,
     );
   }
