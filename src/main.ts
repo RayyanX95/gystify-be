@@ -34,13 +34,23 @@ async function bootstrap() {
   const port = process.env.PORT || 8000;
   await app.listen(port);
 
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`🔗 API endpoints available at: http://localhost:${port}/api/v1`);
-  console.log(
-    `📚 Swagger documentation available at: http://localhost:${port}/api/docs`,
-  );
+  const externalUrl = process.env.RENDER_EXTERNAL_URL;
+  if (externalUrl) {
+    console.log(`🚀 Application is running on: ${externalUrl}`);
+    console.log(`🔗 API endpoints available at: ${externalUrl}/api/v1`);
+    console.log(
+      `📚 Swagger documentation available at: ${externalUrl}/api/docs`,
+    );
+  } else {
+    // Keep localhost logs for local development
+    console.log(`🚀 Application is running on: http://localhost:${port}`);
+    console.log(
+      `🔗 API endpoints available at: http://localhost:${port}/api/v1`,
+    );
+    console.log(
+      `📚 Swagger documentation available at: http://localhost:${port}/api/docs`,
+    );
+  }
 }
 
 void bootstrap();
-
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlicmFoaW0uYWxyYXlhbnlAZ21haWwuY29tIiwic3ViIjoiMDBhOWU4ZjAtZDE5ZC00YmQ0LWFjYzMtZGJmY2NiZDIyZWRkIiwiaWF0IjoxNzU3NTAxNzU1LCJleHAiOjE3NTgxMDY1NTV9.Vtl8gsFUbtiqVfn2k70vRNrvM1vgDyd7NLpah-CkpjU
