@@ -215,6 +215,8 @@ export class AuthService {
     const callbackUrl =
       redirectUri || this.configService.get<string>('GOOGLE_FE_CALLBACK_URL');
 
+    console.log('###### redirectUri:', redirectUri);
+
     // Guard against missing or placeholder credentials
     if (!clientId || !clientSecret) {
       throw new UnauthorizedException(
@@ -245,8 +247,10 @@ export class AuthService {
       const user = await this.validateGoogleUser(googleProfile);
       return this.login(user);
     } catch (error: unknown) {
+      console.log('Google OAuth exchange failed:', JSON.stringify(error));
+
       const errorMessage = getErrorMessage(error);
-      console.error('Google OAuth exchange failed:', errorMessage);
+      console.log('Google OAuth exchange failed:', errorMessage);
 
       // Provide more specific error handling for different scenarios
       if (error instanceof UnauthorizedException) {
