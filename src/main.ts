@@ -31,8 +31,14 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  // Define the port and host
   const port = process.env.PORT || 8000;
-  await app.listen(port);
+  // If NODE_ENV is 'production' (or if the PORT is set by a hosting provider like Render),
+  // bind to '0.0.0.0'. Otherwise, default to 'localhost' (or don't specify the host).
+  const host = process.env.NODE_ENV !== 'development' ? '0.0.0.0' : 'localhost';
+
+  // Listen with the conditional host
+  await app.listen(port, host);
 
   const externalUrl = process.env.RENDER_EXTERNAL_URL;
   if (externalUrl) {
