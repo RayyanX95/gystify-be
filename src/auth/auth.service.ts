@@ -1,7 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UserService } from '../user/user.service';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { User } from '../entities/user.entity';
 import {
@@ -46,7 +51,8 @@ function getErrorMessage(error: unknown): string {
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private subscriptionService: SubscriptionService,
@@ -107,7 +113,7 @@ export class AuthService {
       gmailRefreshToken,
     } = profile;
 
-    let user = await this.userService.findByGoogleId(googleId);
+    let user = await this.findUserByGoogleId(googleId);
 
     if (!user) {
       const createUserDto: CreateUserDto = {
@@ -118,17 +124,14 @@ export class AuthService {
         profilePicture,
         gmailRefreshToken,
       };
-      user = await this.userService.create(createUserDto);
+      user = await this.createUser(createUserDto);
 
       // Note: Trial is NOT auto-started. Users must explicitly start trial
       // or subscribe when they try to create their first snapshot.
       // This creates better conversion pressure and sales opportunities.
     } else if (gmailRefreshToken) {
       // Update refresh token if provided
-      user = await this.userService.updateGmailRefreshToken(
-        user.id,
-        gmailRefreshToken,
-      );
+      user = await this.updateGmailRefreshToken(user.id, gmailRefreshToken);
     }
 
     return user;
@@ -186,7 +189,7 @@ export class AuthService {
   }
 
   async validateUser(email: string): Promise<User> {
-    const user = await this.userService.findByEmail(email);
+    const user = await this.findUserByEmail(email);
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
@@ -201,7 +204,7 @@ export class AuthService {
       googleId: createUserDto.googleId || `test-${Date.now()}`,
     };
 
-    return this.userService.create(testUserData);
+    return this.createUser(testUserData);
   }
 
   // Exchange authorization code received from frontend for Google tokens,
@@ -282,10 +285,7 @@ export class AuthService {
       }
 
       // Get fresh user data
-      const user = await this.userService.findById(payload.sub);
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
+      const user = await this.findUserById(payload.sub);
 
       // Generate new tokens
       const tokens = this.generateTokens(user);
@@ -328,10 +328,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid token type');
       }
 
-      const user = await this.userService.findById(payload.sub);
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
+      const user = await this.findUserById(payload.sub);
 
       return user;
     } catch (error: unknown) {
@@ -345,5 +342,47 @@ export class AuthService {
 
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
+  }
+
+  // ============ User Management Methods ============
+
+  async findUserById(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async findUserByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  async findUserByGoogleId(googleId: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { googleId } });
+  }
+
+  async createUser(createUserDto: CreateUserDto): Promise<User> {
+    const user = this.userRepository.create(createUserDto);
+    return this.userRepository.save(user);
+  }
+
+  async updateGmailRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<User> {
+    await this.userRepository.update(userId, {
+      gmailRefreshToken: refreshToken,
+    });
+    return this.findUserById(userId);
+  }
+
+  /**
+   * Delete the current authenticated user account
+   * @param userId - ID of the user to delete
+   */
+  async deleteCurrentUser(userId: string): Promise<void> {
+    const user = await this.findUserById(userId); // This will throw NotFoundException if user doesn't exist
+    await this.userRepository.remove(user);
   }
 }

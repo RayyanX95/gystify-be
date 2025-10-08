@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmailService } from '../email/email.service';
-import { UserService } from '../user/user.service';
+import { AuthService } from '../auth/auth.service';
 import { AiSummaryService } from '../ai-summary/ai-summary.service';
 import { DailySummary } from '../entities/daily-summary.entity';
 // import {
@@ -31,7 +31,7 @@ export class SummaryService {
     @InjectRepository(DailySummary)
     private dailySummaryRepository: Repository<DailySummary>,
     private emailService: EmailService,
-    private userService: UserService,
+    private authService: AuthService,
     private aiSummaryService: AiSummaryService,
   ) {}
 
@@ -54,10 +54,7 @@ export class SummaryService {
       // });
 
       // fetch emails for the user from Gmail directly (no DB persistence)
-      const user = await this.userService.findById(userId);
-      if (!user) {
-        throw new NotFoundException(`User with ID ${userId} not found`);
-      }
+      const user = await this.authService.findUserById(userId);
 
       const emails = await this.emailService.fetchGmailMessages(
         user,

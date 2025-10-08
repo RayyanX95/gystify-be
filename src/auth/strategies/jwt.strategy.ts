@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UserService } from '../../user/user.service';
+import { AuthService } from '../auth.service';
 import { AUTH_CONSTANTS } from '../auth.constants';
 
 export interface JwtPayload {
@@ -16,7 +16,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
-    private userService: UserService,
+    private authService: AuthService,
   ) {
     // JWT secret and validation is handled by JwtModule in auth.module.ts
     // We only need to specify the extraction method and validation options
@@ -32,10 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.userService.findById(payload.sub);
-    if (!user) {
-      throw new UnauthorizedException();
-    }
+    const user = await this.authService.findUserById(payload.sub);
     return user;
   }
 }

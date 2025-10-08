@@ -1,18 +1,19 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { UserModule } from '../user/user.module';
+import { User } from '../entities/user.entity';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { AUTH_CONSTANTS } from './auth.constants';
 
 @Module({
   imports: [
-    UserModule,
+    TypeOrmModule.forFeature([User]),
     SubscriptionModule,
     PassportModule.register({
       defaultStrategy: AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY,
