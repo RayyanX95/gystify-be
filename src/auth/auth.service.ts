@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { User } from '../entities/user.entity';
+import { SubscriptionTier } from '../entities/subscription-plan.entity';
 import {
   CreateUserDto,
   LoginResponseDto,
@@ -114,8 +115,17 @@ export class AuthService {
     } = profile;
 
     let user = await this.findUserByGoogleId(googleId);
+    console.log('Existing user by Google ID:', user);
 
+    // If no user found by Google ID, check by email for inactive accounts
     if (!user) {
+      user = await this.findUserByEmail(email);
+      console.log('Existing user by email:', user);
+    }
+
+    // Handle different scenarios
+    if (!user) {
+      // No user found at all - create new user
       const createUserDto: CreateUserDto = {
         googleId,
         email,
@@ -125,11 +135,50 @@ export class AuthService {
         gmailRefreshToken,
       };
       user = await this.createUser(createUserDto);
+    } else if (user.isActive === false) {
+      // User exists but is inactive - reactivate with fresh data
+      console.log(
+        'Reactivating deleted user and cleaning up old data:',
+        user.email,
+      );
+
+      // Clean up old user data first
+      await this.cleanupUserData(user.id);
+
+      // Reset user to fresh state
+      await this.userRepository.update(user.id, {
+        googleId,
+        firstName,
+        lastName,
+        profilePicture,
+        gmailRefreshToken,
+        isActive: true,
+        // Reset usage counters to zero for fresh start
+        snapshotsCreatedToday: 0,
+        totalSnapshotsCreated: 0,
+        emailsSummarizedToday: 0,
+        totalEmailsSummarized: 0,
+        lastSnapshotDate: undefined,
+        lastUsageResetDate: undefined,
+        // Reset subscription to FREE tier for fresh start
+        subscriptionTier: SubscriptionTier.FREE,
+        billingCycle: undefined,
+        trialStartedAt: undefined,
+        trialExpiresAt: undefined,
+        subscriptionStartedAt: undefined,
+        subscriptionExpiresAt: undefined,
+        stripeCustomerId: undefined,
+        stripeSubscriptionId: undefined,
+      });
+
+      // Fetch the updated user
+      user = await this.findUserById(user.id);
+      console.log('User reactivated with fresh state:', user.email);
 
       // Note: Trial is NOT auto-started. Users must explicitly start trial
       // or subscribe when they try to create their first snapshot.
       // This creates better conversion pressure and sales opportunities.
-    } else if (gmailRefreshToken) {
+    } else if (user.isActive === true && gmailRefreshToken) {
       // Update refresh token if provided
       user = await this.updateGmailRefreshToken(user.id, gmailRefreshToken);
     }
@@ -378,11 +427,157 @@ export class AuthService {
   }
 
   /**
-   * Delete the current authenticated user account
+   * Delete the current authenticated user account and handle all associated data
    * @param userId - ID of the user to delete
    */
   async deleteCurrentUser(userId: string): Promise<void> {
-    const user = await this.findUserById(userId); // This will throw NotFoundException if user doesn't exist
-    await this.userRepository.remove(user);
+    const user = await this.findUserById(userId);
+
+    try {
+      // 1. Cancel any active subscriptions first to prevent billing issues
+      // TODO: Implement subscription cancellation if method exists
+      // await this.subscriptionService.cancelUserSubscriptions(userId);
+
+      // 2. Handle data cleanup based on business requirements
+      await this.cleanupUserData(userId);
+
+      // 3. Soft delete: Mark account as deleted and reset all user data
+      // This ensures clean state if user ever reactivates
+      await this.userRepository.update(userId, {
+        isActive: false,
+        firstName: 'Deleted',
+        lastName: 'User',
+        profilePicture: undefined,
+        gmailRefreshToken: undefined,
+        // Reset all usage counters
+        snapshotsCreatedToday: 0,
+        totalSnapshotsCreated: 0,
+        emailsSummarizedToday: 0,
+        totalEmailsSummarized: 0,
+        lastSnapshotDate: undefined,
+        lastUsageResetDate: undefined,
+        // Reset subscription to FREE tier
+        subscriptionTier: SubscriptionTier.FREE,
+        billingCycle: undefined,
+        trialStartedAt: undefined,
+        trialExpiresAt: undefined,
+        subscriptionStartedAt: undefined,
+        subscriptionExpiresAt: undefined,
+        stripeCustomerId: undefined,
+        stripeSubscriptionId: undefined,
+        // Keep email for business purposes (newsletters, prevent reregistration issues)
+      });
+
+      // 4. Log the deletion for audit and business intelligence
+      console.log(
+        `User account soft-deleted: ${user.email} (ID: ${userId}) at ${new Date().toISOString()}`,
+      );
+
+      // Note: We keep the user record with email for:
+      // - Marketing/newsletter purposes
+      // - Preventing account recreation issues
+      // - Business analytics and user lifecycle tracking
+      // - Compliance with data retention policies
+    } catch (error) {
+      console.error(`Failed to delete user account ${userId}:`, error);
+      throw new Error(
+        'Failed to delete account. Please try again or contact support.',
+      );
+    }
+  }
+
+  /**
+   * Clean up user-related data (snapshots, interactions, senders)
+   * Preserves user record and subscription history for business purposes
+   */
+  private async cleanupUserData(userId: string): Promise<void> {
+    try {
+      // Get DataSource from userRepository to access other repositories
+      const dataSource = this.userRepository.manager;
+
+      // Use transaction to ensure data consistency
+      await dataSource.transaction(async (transactionalEntityManager) => {
+        // 1. Delete user interactions/analytics data
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('user_interactions')
+          .where('user_id = :userId', { userId })
+          .execute();
+
+        // 2. Delete snapshot items first (due to foreign key constraints)
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('snapshot_items')
+          .where(
+            'snapshot_id IN (SELECT id FROM snapshots WHERE user_id = :userId)',
+            { userId },
+          )
+          .execute();
+
+        // 3. Delete snapshots
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('snapshots')
+          .where('user_id = :userId', { userId })
+          .execute();
+
+        // 4. Delete user-specific senders
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('senders')
+          .where('user_id = :userId', { userId })
+          .execute();
+      });
+
+      // Note: We preserve:
+      // - User record (for email and audit trail)
+      // - Subscription history (for financial/legal compliance)
+      // - Any audit logs (for security compliance)
+
+      console.log(`User data cleanup completed for user ID: ${userId}`);
+    } catch (error) {
+      console.error(`Failed to cleanup user data for ${userId}:`, error);
+      throw new Error('Failed to cleanup user data during account deletion');
+    }
+  }
+
+  /**
+   * Complete hard delete (for GDPR right to be forgotten requests)
+   * This should be a separate endpoint with additional verification
+   */
+  async hardDeleteUser(
+    userId: string,
+    adminConfirmation: boolean = false,
+  ): Promise<void> {
+    if (!adminConfirmation) {
+      throw new Error(
+        'Hard delete requires admin confirmation for GDPR compliance',
+      );
+    }
+
+    const user = await this.findUserById(userId);
+
+    try {
+      // Complete data cleanup
+      await this.cleanupUserData(userId);
+
+      // Cancel subscriptions
+      // TODO: Implement subscription cancellation if method exists
+      // await this.subscriptionService.cancelUserSubscriptions(userId);
+
+      // Complete removal from database
+      await this.userRepository.remove(user);
+
+      console.log(
+        `User HARD deleted for GDPR compliance: ${user.email} (ID: ${userId})`,
+      );
+    } catch (error) {
+      console.error(`Failed to hard delete user ${userId}:`, error);
+      throw new Error('Failed to perform GDPR deletion');
+    }
   }
 }
