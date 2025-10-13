@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, In } from 'typeorm';
-import { User, DailySummary, Snapshot } from '../entities';
+import { User, Snapshot } from '../entities';
 
 import { SnapshotService } from '../snapshot/snapshot.service';
 
@@ -13,8 +13,6 @@ export class SchedulerService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(DailySummary)
-    private dailySummaryRepository: Repository<DailySummary>,
     @InjectRepository(Snapshot)
     private snapshotRepository: Repository<Snapshot>,
     private snapshotService: SnapshotService, // Add SnapshotService
@@ -174,32 +172,6 @@ export class SchedulerService {
     } catch (error) {
       this.logger.error(
         '❌ Error during snapshot cleanup:',
-        (error as Error).message,
-      );
-    }
-  }
-
-  /**
-   * Weekly cleanup of old daily summaries (optional)
-   * Keep the legacy system for now
-   */
-  @Cron('0 2 * * 0', { timeZone: 'UTC' }) // Weekly on Sunday at 02:00 UTC
-  async cleanupOldDailySummaries() {
-    this.logger.log('Starting weekly cleanup of old daily summaries');
-
-    try {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-      const deletedSummaries = await this.dailySummaryRepository.delete({
-        summaryDate: LessThan(thirtyDaysAgo),
-      });
-
-      this.logger.log(
-        `🗑️ Deleted ${deletedSummaries.affected} old daily summaries (30+ days)`,
-      );
-    } catch (error) {
-      this.logger.error(
-        'Error during daily summaries cleanup:',
         (error as Error).message,
       );
     }

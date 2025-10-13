@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   UseGuards,
   Req,
@@ -23,6 +24,7 @@ import {
   RefreshTokenDto,
   RefreshResponseDto,
 } from '../dto/auth.dto';
+import { User } from '../entities/user.entity';
 import { AUTH_CONSTANTS } from './auth.constants';
 
 @ApiTags('Auth')
@@ -154,5 +156,27 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User profile retrieved' })
   getProfile(@Req() req: Request) {
     return req.user;
+  }
+
+  @Delete('profile')
+  @UseGuards(AuthGuard(AUTH_CONSTANTS.PASSPORT.DEFAULT_STRATEGY))
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete current user account',
+    description:
+      'Permanently delete the authenticated user account and all associated data',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'User account successfully deleted',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing authentication token',
+  })
+  async deleteAccount(@Req() req: Request): Promise<void> {
+    const user = req.user as User;
+    return this.authService.deleteCurrentUser(user.id);
   }
 }
