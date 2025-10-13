@@ -25,7 +25,7 @@ import { AUTH_CONSTANTS } from './auth.constants';
         const nodeEnv = configService.get<string>('NODE_ENV');
         const isProduction = nodeEnv === 'production';
         const jwtSecret = configService.get<string>('JWT_SECRET');
-        const jwtExpiresIn =
+        const jwtExpiresIn: string | number =
           configService.get<string>('JWT_EXPIRES_IN') ||
           AUTH_CONSTANTS.JWT.ACCESS_TOKEN_EXPIRES_IN;
 
