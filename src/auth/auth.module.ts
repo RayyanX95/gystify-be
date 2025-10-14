@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { StringValue } from 'ms';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy';
@@ -21,13 +22,13 @@ import { AUTH_CONSTANTS } from './auth.constants';
     }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
         const nodeEnv = configService.get<string>('NODE_ENV');
         const isProduction = nodeEnv === 'production';
         const jwtSecret = configService.get<string>('JWT_SECRET');
-        const jwtExpiresIn: string | number =
+        const jwtExpiresIn =
           configService.get<string>('JWT_EXPIRES_IN') ||
-          AUTH_CONSTANTS.JWT.ACCESS_TOKEN_EXPIRES_IN;
+          (AUTH_CONSTANTS.JWT.ACCESS_TOKEN_EXPIRES_IN as StringValue);
 
         // Production environment validation for ACCESS TOKEN secret only
         if (isProduction && !jwtSecret) {
@@ -53,7 +54,7 @@ import { AUTH_CONSTANTS } from './auth.constants';
         return {
           secret,
           signOptions: {
-            expiresIn: jwtExpiresIn,
+            expiresIn: jwtExpiresIn as StringValue,
             issuer: AUTH_CONSTANTS.JWT.ISSUER,
             audience: AUTH_CONSTANTS.JWT.AUDIENCE,
           },
